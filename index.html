@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="週間スケジュール">
+<meta name="theme-color" content="#c4704a">
+<title>週間スケジュール表</title>
+
+<!-- PWA manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Google Fonts（preconnect で高速化） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+
+<!-- iOS ホーム画面アイコン（180x180 が iPhone 標準） -->
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<style>
+  :root {
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --ink: #1c1c1e;
+    --ink2: #3a3a3c;
+    --muted: #8e8e93;
+    --sep: #c6c6c8;
+    --accent: #c4704a;
+    --blue: #007aff;
+    --red: #ff3b30;
+    --green: #34c759;
+    --morning: #fff3cd; --morning-ink: #856404;
+    --noon:    #d1e7dd; --noon-ink:    #0f5132;
+    --evening: #cfe2ff; --evening-ink: #084298;
+    --night:   #e2d9f3; --night-ink:   #432874;
+    --safe-t: env(safe-area-inset-top,0px);
+    --safe-b: env(safe-area-inset-bottom,0px);
+    --safe-l: env(safe-area-inset-left,0px);
+    --safe-r: env(safe-area-inset-right,0px);
+    --bar-h: 110px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    font-family: 'Noto Sans JP', -apple-system, sans-serif;
+    background: var(--bg); color: var(--ink);
+    min-height: 100dvh;
+    padding-top: calc(var(--safe-t) + 12px);
+    padding-left: calc(var(--safe-l) + 14px);
+    padding-right: calc(var(--safe-r) + 14px);
+    padding-bottom: calc(var(--safe-b) + 110px + 16px);
+  }
+
+  /* ══ ページ管理 ══ */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ══ ヘッダー ══ */
+  .app-header { text-align: center; padding: 8px 0 14px; }
+  .app-header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.06em; }
+  .app-header p  { font-size: 0.71rem; color: var(--muted); margin-top: 3px; }
+
+  #save-status { text-align: center; font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; min-height: 16px; transition: color 0.3s; }
+  #save-status.saved { color: var(--green); }
+
+  .undo-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  #undo-btn {
+    height: 36px; padding: 0 16px; font-size: 0.8rem; font-family: inherit; font-weight: 500;
+    color: var(--blue); background: var(--card); border: 1px solid var(--sep); border-radius: 10px; cursor: pointer;
+  }
+  #undo-btn:disabled { color: var(--muted); }
+  #undo-btn:active:not(:disabled) { opacity: 0.6; }
+
+  /* ══ カード ══ */
+  .day-card { background: var(--card); border-radius: 14px; margin-bottom: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .day-header { background: var(--ink2); color: #fff; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.1em; padding: 11px 16px; }
+  .slot-section { border-top: 1px solid var(--bg); }
+  .day-header + .slot-section { border-top: none; }
+  .slot-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px 6px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; }
+  .slot-header.morning { color: var(--morning-ink); }
+  .slot-header.noon    { color: var(--noon-ink); }
+  .slot-header.evening { color: var(--evening-ink); }
+  .slot-header.night   { color: var(--night-ink); }
+  .slot-bar { width: 4px; height: 16px; border-radius: 2px; flex-shrink: 0; }
+  .slot-bar.morning { background: var(--morning-ink); }
+  .slot-bar.noon    { background: var(--noon-ink); }
+  .slot-bar.evening { background: var(--evening-ink); }
+  .slot-bar.night   { background: var(--night-ink); }
+  .slot-sep { height: 1px; background: var(--bg); }
+
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; min-height: 10px; }
+  .tag { display: inline-flex; align-items: center; border-radius: 20px; font-size: 0.78rem; font-weight: 500; animation: tagPop 0.15s ease; overflow: hidden; min-height: 44px; }
+  @keyframes tagPop { from { opacity:0; transform:scale(0.8); } to { opacity:1; transform:scale(1); } }
+  .tag-label { padding: 10px 10px 10px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .tag-morning .tag-label { background: var(--morning); color: var(--morning-ink); }
+  .tag-noon    .tag-label { background: var(--noon);    color: var(--noon-ink); }
+  .tag-evening .tag-label { background: var(--evening); color: var(--evening-ink); }
+  .tag-night   .tag-label { background: var(--night);   color: var(--night-ink); }
+  .tag-remove { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: none; cursor: pointer; padding: 0 8px 0 4px; border-radius: 0 20px 20px 0; transition: opacity 0.15s; -webkit-tap-highlight-color: transparent; }
+  .tag-morning .tag-remove { background: var(--morning); color: var(--morning-ink); }
+  .tag-noon    .tag-remove { background: var(--noon);    color: var(--noon-ink); }
+  .tag-evening .tag-remove { background: var(--evening); color: var(--evening-ink); }
+  .tag-night   .tag-remove { background: var(--night);   color: var(--night-ink); }
+  .tag-remove:active { opacity: 0.5; }
+
+  .input-area { padding: 4px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .ios-select-wrap { position: relative; }
+  .ios-select {
+    width: 100%; height: 44px; font-family: inherit; font-size: 0.88rem;
+    padding: 0 36px 0 14px; border: 1.5px solid var(--sep); border-radius: 10px;
+    background: var(--bg); color: var(--ink);
+    -webkit-appearance: none; appearance: none; outline: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238e8e93' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  .ios-select:focus { border-color: var(--blue); }
+  .free-row { display: flex; gap: 8px; align-items: center; }
+  .ios-input {
+    flex: 1; height: 44px; font-family: inherit; font-size: 16px;
+    padding: 0 14px; border: 1.5px solid var(--sep); border-radius: 10px;
+    background: var(--bg); color: var(--ink);
+    -webkit-appearance: none; appearance: none; outline: none; min-width: 0;
+  }
+  .ios-input:focus { border-color: var(--blue); }
+  .ios-input::placeholder { color: var(--muted); font-size: 0.82rem; }
+  .ios-add-btn { height: 44px; padding: 0 18px; font-family: inherit; font-size: 0.88rem; font-weight: 600; background: var(--accent); color: #fff; border: none; border-radius: 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .ios-add-btn:active { opacity: 0.75; }
+
+  /* ══ 下部固定バー ══ */
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 8px 12px calc(8px + var(--safe-b)) 12px;
+    background: rgba(242,242,247,0.94);
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    border-top: 1px solid var(--sep);
+    display: flex; flex-direction: column; gap: 6px; z-index: 100;
+  }
+  .bar-row { display: flex; gap: 6px; }
+  .bar-btn {
+    flex: 1; height: 44px; font-family: inherit; font-size: 0.78rem; font-weight: 600;
+    border-radius: 10px; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 3px;
+    transition: opacity 0.15s; white-space: nowrap;
+  }
+  .bar-btn:active { opacity: 0.65; }
+  .bar-btn-ghost  { background: var(--card); color: var(--ink2); border: 1px solid var(--sep); }
+  .bar-btn-red    { background: #fff0ef; color: var(--red); border: 1px solid #ffcccb; }
+  .bar-btn-blue   { background: #e8f2ff; color: var(--blue); border: 1px solid #a8ceff; }
+  .bar-btn-accent { background: var(--accent); color: #fff; }
+  .bar-btn-wide   { flex: 2; }
+
+
+
+  /* ══ トースト ══ */
+  #toast {
+    position: fixed; bottom: calc(var(--bar-h) + var(--safe-b) + 12px); left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(28,28,30,0.9); color: #fff;
+    padding: 10px 20px; border-radius: 20px; font-size: 0.82rem;
+    opacity: 0; pointer-events: none; transition: opacity 0.22s, transform 0.22s;
+    z-index: 300; white-space: nowrap; max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ══════════════════════════════════════
+     プレビューモーダル
+  ══════════════════════════════════════ */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.5);
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-sheet {
+    background: var(--card); width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 0 0 calc(var(--safe-b) + 16px);
+    max-height: 88dvh;
+    display: flex; flex-direction: column;
+    animation: sheetUp 0.28s cubic-bezier(0.34,1.2,0.64,1);
+  }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  .modal-handle { width: 36px; height: 4px; background: var(--sep); border-radius: 2px; margin: 10px auto 0; }
+
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px 10px; border-bottom: 1px solid var(--bg);
+    flex-shrink: 0;
+  }
+  .modal-title { font-size: 1rem; font-weight: 700; }
+  .modal-close {
+    width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--bg); color: var(--ink2); font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:active { opacity: 0.6; }
+
+  .modal-body { overflow-y: auto; flex: 1; padding: 14px 16px; -webkit-overflow-scrolling: touch; }
+
+  /* ══ プレビュー一覧表 ══ */
+  .preview-info-box { background: var(--bg); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.8rem; line-height: 1.9; color: var(--ink2); }
+  .preview-info-box strong { font-weight: 700; color: var(--ink); }
+
+  .preview-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid var(--sep); }
+  .preview-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; min-width: 480px; }
+  .preview-table th, .preview-table td { border: 1px solid var(--sep); padding: 7px 8px; vertical-align: top; text-align: left; }
+  .preview-table thead th { text-align: center; font-weight: 700; font-size: 0.75rem; background: var(--bg); white-space: nowrap; }
+  .preview-table thead th:first-child { background: var(--ink2); color: #fff; }
+  .preview-table thead th.th-morning { color: var(--morning-ink); }
+  .preview-table thead th.th-noon    { color: var(--noon-ink); }
+  .preview-table thead th.th-evening { color: var(--evening-ink); }
+  .preview-table thead th.th-night   { color: var(--night-ink); }
+  .preview-table tbody td.td-day { font-weight: 700; font-size: 0.8rem; text-align: center; white-space: nowrap; background: var(--bg); color: var(--ink2); vertical-align: middle; }
+  .preview-table tbody td { min-width: 60px; }
+  .preview-tag-wrap { display: flex; flex-direction: column; gap: 3px; }
+  .preview-tag {
+    display: inline-block; font-size: 0.72rem; font-weight: 500;
+    padding: 2px 7px; border-radius: 10px; white-space: nowrap;
+  }
+  .preview-tag.morning { background: var(--morning); color: var(--morning-ink); }
+  .preview-tag.noon    { background: var(--noon);    color: var(--noon-ink); }
+  .preview-tag.evening { background: var(--evening); color: var(--evening-ink); }
+  .preview-tag.night   { background: var(--night);   color: var(--night-ink); }
+  .preview-empty-cell { color: var(--muted); font-size: 0.72rem; }
+
+  .modal-footer { padding: 12px 16px 0; display: flex; gap: 10px; flex-shrink: 0; border-top: 1px solid var(--bg); }
+
+  /* ══ 確認ダイアログ（confirm代替）══ */
+  .confirm-overlay {
+    display: none; position: fixed; inset: 0; z-index: 900;
+    background: rgba(0,0,0,0.55);
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .confirm-overlay.open { display: flex; }
+  .confirm-box {
+    background: var(--card); border-radius: 16px;
+    padding: 24px 20px 16px; width: 100%; max-width: 320px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+    animation: confirmPop 0.2s cubic-bezier(0.34,1.3,0.64,1);
+  }
+  @keyframes confirmPop { from { opacity:0; transform:scale(0.88); } to { opacity:1; transform:scale(1); } }
+  .confirm-title { font-size: 0.95rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .confirm-msg   { font-size: 0.82rem; color: var(--ink2); line-height: 1.6; margin-bottom: 20px; }
+  .confirm-btns  { display: flex; gap: 10px; }
+  .confirm-btn   { flex: 1; height: 46px; font-family: inherit; font-size: 0.88rem; font-weight: 700; border-radius: 12px; border: none; cursor: pointer; }
+  .confirm-btn:active { opacity: 0.7; }
+  .confirm-cancel  { background: var(--bg); color: var(--ink2); }
+  .confirm-ok-red  { background: var(--red); color: #fff; }
+  .confirm-ok-blue { background: var(--blue); color: #fff; }
+
+  /* ══ タグ編集ダイアログ ══ */
+  .edit-overlay {
+    display: none; position: fixed; inset: 0; z-index: 910;
+    background: rgba(0,0,0,0.55);
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .edit-overlay.open { display: flex; }
+  .edit-box {
+    background: var(--card); border-radius: 16px;
+    padding: 24px 20px 18px; width: 100%; max-width: 340px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+    animation: confirmPop 0.2s cubic-bezier(0.34,1.3,0.64,1);
+  }
+  .edit-box-title { font-size: 0.95rem; font-weight: 700; color: var(--ink); margin-bottom: 14px; }
+  .edit-box-input {
+    width: 100%; height: 48px; font-family: inherit; font-size: 16px;
+    padding: 0 14px; border: 1.5px solid var(--sep); border-radius: 10px;
+    background: var(--bg); color: var(--ink); outline: none; margin-bottom: 16px;
+    -webkit-appearance: none; appearance: none;
+  }
+  .edit-box-input:focus { border-color: var(--blue); }
+  .edit-box-btns { display: flex; gap: 10px; }
+  .edit-box-btn {
+    flex: 1; height: 46px; font-family: inherit; font-size: 0.88rem;
+    font-weight: 700; border-radius: 12px; border: none; cursor: pointer;
+  }
+  .edit-box-btn:active { opacity: 0.7; }
+  .edit-cancel { background: var(--bg); color: var(--ink2); }
+  .edit-save   { background: var(--accent); color: #fff; }
+  /* タグラベルを編集可能に見せる */
+  .tag-label { cursor: pointer; }
+  .tag-label:active { opacity: 0.7; }
+  .modal-btn { flex: 1; height: 48px; font-family: inherit; font-size: 0.88rem; font-weight: 700; border-radius: 12px; border: none; cursor: pointer; }
+  .modal-btn:active { opacity: 0.7; }
+  .modal-btn-cancel { background: var(--bg); color: var(--ink2); }
+  .modal-btn-print  { background: #edfaf1; color: #1a7a3a; border: 1px solid #9adcb4; }
+  .modal-btn-txt    { background: #e8f2ff; color: var(--blue); }
+  .modal-btn-pdf    { background: var(--accent); color: white; }
+  /* 印刷ボタンはすべてのデバイスで表示（window.print() 直接呼び出しのため） */
+  /* @media (hover: none) and (pointer: coarse) { .pc-only { display: none !important; } } */
+
+  /* ══ プルダウン管理ページ ══ */
+  .opts-slot-card { background: var(--card); border-radius: 14px; margin-bottom: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .opts-slot-header { padding: 10px 14px; font-size: 0.85rem; font-weight: 700; background: var(--bg); border-bottom: 1px solid var(--sep); }
+  .opts-slot-header.morning { color: var(--morning-ink); }
+  .opts-slot-header.noon    { color: var(--noon-ink); }
+  .opts-slot-header.evening { color: var(--evening-ink); }
+  .opts-slot-header.night   { color: var(--night-ink); }
+  .opts-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border-bottom: 1px solid var(--bg); font-size: 0.85rem; }
+  .opts-item:last-child { border-bottom: none; }
+  .opts-item-label { flex: 1; color: var(--ink); }
+  .opts-item-label.base { color: var(--muted); font-size: 0.8rem; }
+  .opts-item-badge { font-size: 0.68rem; padding: 2px 7px; border-radius: 8px; margin-right: 8px; background: var(--bg); color: var(--muted); }
+  .opts-item-del { height: 34px; padding: 0 12px; font-size: 0.78rem; font-weight: 600; font-family: inherit; border: none; border-radius: 8px; background: #fff0ef; color: var(--red); cursor: pointer; white-space: nowrap; }
+  .opts-item-del:active { opacity: 0.65; }
+  .opts-note { font-size: 0.75rem; color: var(--muted); padding: 10px 14px; text-align: center; }
+
+  /* ══════════════════════════════════════
+     履歴ページ
+  ══════════════════════════════════════ */
+  .hist-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 0 16px;
+  }
+  .hist-back {
+    height: 36px; padding: 0 14px; font-family: inherit; font-size: 0.85rem; font-weight: 600;
+    color: var(--blue); background: var(--card); border: 1px solid var(--sep); border-radius: 10px; cursor: pointer;
+  }
+  .hist-back:active { opacity: 0.6; }
+  .hist-title { font-size: 1.05rem; font-weight: 700; }
+  .hist-count { font-size: 0.72rem; color: var(--muted); margin-left: auto; }
+
+  .hist-empty { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 40px 0; }
+
+  .hist-card {
+    background: var(--card); border-radius: 14px; margin-bottom: 12px;
+    overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  .hist-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; background: var(--bg); border-bottom: 1px solid var(--sep);
+  }
+  .hist-card-time { font-size: 0.78rem; font-weight: 700; color: var(--ink2); }
+  .hist-card-actions { display: flex; gap: 8px; }
+  .hist-act-btn {
+    height: 32px; padding: 0 12px; font-family: inherit; font-size: 0.75rem; font-weight: 600;
+    border-radius: 8px; border: none; cursor: pointer;
+  }
+  .hist-act-btn:active { opacity: 0.65; }
+  .hist-act-restore { background: #e8f2ff; color: var(--blue); }
+  .hist-act-delete  { background: #fff0ef; color: var(--red); }
+
+  .hist-card-body { padding: 10px 14px 12px; }
+  .hist-card-sub { font-size: 0.7rem; color: var(--muted); width: 100%; padding-top: 2px; }
+  .hist-no-content { font-size: 0.78rem; color: var(--muted); }
+  .hist-day-row { display: flex; gap: 6px; align-items: baseline; margin-bottom: 4px; font-size: 0.78rem; }
+  .hist-day-name { font-weight: 700; color: var(--ink2); min-width: 44px; }
+  .hist-day-summary { color: var(--muted); flex: 1; line-height: 1.5; }
+
+  /* ══ 利用者情報カード ══ */
+  .user-card {
+    background: var(--card); border-radius: 14px; margin-bottom: 14px;
+    overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .user-card-header {
+    background: var(--accent); color: #fff;
+    font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em;
+    padding: 9px 16px;
+  }
+  .user-card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .user-field { display: flex; align-items: center; gap: 10px; }
+  .user-field-label {
+    font-size: 0.8rem; font-weight: 700; color: var(--ink2);
+    min-width: 72px; white-space: nowrap;
+  }
+  .user-field-input {
+    flex: 1; height: 44px; font-family: inherit; font-size: 16px;
+    padding: 0 14px; border: 1.5px solid var(--sep); border-radius: 10px;
+    background: var(--bg); color: var(--ink);
+    -webkit-appearance: none; appearance: none; outline: none;
+  }
+  .user-field-input:focus { border-color: var(--blue); }
+  .user-field-input::placeholder { color: var(--muted); font-size: 0.82rem; }
+
+  /* ══ 印刷専用テーブル（画面では非表示）══ */
+  #print-view { display: none; }
+
+  /* ══ 印刷：A4横・1枚に収める ══ */
+  @media print {
+    /* A4横: 297mm × 210mm、余白8mm → 印刷可能域 281mm × 194mm */
+    @page { size: A4 landscape; margin: 8mm; }
+
+    /* 印刷不要要素を全て非表示 */
+    #page-main, .bottom-bar, .undo-bar, #save-status,
+    #page-history, #page-options,
+    .modal-overlay, .confirm-overlay, .edit-overlay { display: none !important; }
+
+    /* ページ全体リセット */
+    html, body {
+      width: 281mm; height: 194mm;
+      margin: 0; padding: 0;
+      background: white;
+      font-family: 'Noto Sans JP', -apple-system, sans-serif;
+      color: #1c1c1e;
+      overflow: hidden;
+    }
+
+    /* 背景色を印刷に反映 */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    /* ページ分割を禁止 */
+    table { page-break-inside: avoid; break-inside: avoid; }
+    tbody tr { page-break-inside: avoid; break-inside: avoid; }
+
+    /* 印刷テーブルを全面表示 */
+    #print-view {
+      display: flex !important;
+      flex-direction: column;
+      width: 281mm;
+      height: 194mm;
+      overflow: hidden;
+    }
+
+    /* 利用者情報ヘッダー
+       高さ固定: 9mm + border 0.5mm + margin-bottom 2mm = 11.5mm 消費 */
+    #print-info {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 5mm;
+      height: 9mm;
+      padding-bottom: 2mm;
+      border-bottom: 0.5mm solid #3a3a3c;
+      margin-bottom: 2mm;
+      font-size: 7.5pt;
+      overflow: hidden;
+    }
+    #print-info .pi-title {
+      font-size: 10pt;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      margin-right: 2mm;
+      white-space: nowrap;
+    }
+    #print-info .pi-field { color: #3a3a3c; white-space: nowrap; }
+    #print-info .pi-label { font-weight: 700; margin-right: 1mm; }
+
+    /* メインテーブル
+       残り高さ: 194 - 9(ヘッダー) - 2(border+padding) - 2(margin-bottom) = 181mm
+       thead: 5.5mm / tbody 7行: (181 - 5.5 - border ~2mm) / 7 ≈ 24.8mm → 24.5mmで余裕確保 */
+    #print-table {
+      flex: 1;
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      height: 0; /* flex:1 に任せる */
+    }
+
+    #print-table th, #print-table td {
+      border: 0.3mm solid #aaa;
+      vertical-align: top;
+      overflow: hidden;
+      padding: 1mm 1.5mm;
+      font-size: 7.5pt;
+      line-height: 1.4;
+    }
+
+    /* 列幅：曜日 10% / 朝昼夕夜 各22.5% */
+    #print-table col.col-day  { width: 10%; }
+    #print-table col.col-slot { width: 22.5%; }
+
+    /* ヘッダー行 高さ固定 */
+    #print-table thead tr { height: 5.5mm; }
+    #print-table thead th {
+      font-weight: 700;
+      font-size: 8pt;
+      text-align: center;
+      padding: 1mm;
+      white-space: nowrap;
+      background: #f2f2f7;
+      vertical-align: middle;
+    }
+    #print-table thead th:first-child { background: #3a3a3c; color: #fff; }
+    #print-table thead th.th-morning  { color: #856404; }
+    #print-table thead th.th-noon     { color: #0f5132; }
+    #print-table thead th.th-evening  { color: #084298; }
+    #print-table thead th.th-night    { color: #432874; }
+
+    /* データ行：高さを均等固定（7行 × 24.5mm = 171.5mm） */
+    #print-table tbody tr { height: 24.5mm; }
+    #print-table tbody td { height: 24.5mm; max-height: 24.5mm; }
+
+    /* 曜日セル */
+    #print-table td.td-day {
+      font-weight: 700;
+      font-size: 8.5pt;
+      text-align: center;
+      vertical-align: middle;
+      background: #f2f2f7;
+      white-space: pre;
+    }
+
+    /* タグチップ */
+    #print-table .pt-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8mm;
+      align-content: flex-start;
+      max-height: 22mm;
+      overflow: hidden;
+    }
+    #print-table .pt-tag {
+      display: inline-block;
+      font-size: 7pt;
+      font-weight: 500;
+      padding: 0.4mm 2mm;
+      border-radius: 2px;
+      white-space: nowrap;
+      line-height: 1.5;
+    }
+    #print-table .pt-tag.morning { background: #fff3cd; color: #856404; }
+    #print-table .pt-tag.noon    { background: #d1e7dd; color: #0f5132; }
+    #print-table .pt-tag.evening { background: #cfe2ff; color: #084298; }
+    #print-table .pt-tag.night   { background: #e2d9f3; color: #432874; }
+    #print-table .pt-empty       { color: #aaa; font-size: 7pt; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ メインページ ══ -->
+<div id="page-main" class="page active">
+  <div class="app-header">
+    <h1>週間スケジュール表</h1>
+    <p>タップで追加・削除。内容はブラウザに自動保存されます。</p>
+  </div>
+  <div id="save-status">読み込み中…</div>
+
+  <!-- 利用者情報 -->
+  <div class="user-card">
+    <div class="user-card-header">👤 利用者情報</div>
+    <div class="user-card-body">
+      <div class="user-field">
+        <span class="user-field-label">利用者氏名</span>
+        <input class="user-field-input" id="user-name" type="text" placeholder="氏名を入力してください" autocomplete="name" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="user-field">
+        <span class="user-field-label">担当者名</span>
+        <input class="user-field-input" id="user-staff" type="text" placeholder="担当者名を入力してください" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="user-field">
+        <span class="user-field-label">対象期間</span>
+        <input class="user-field-input" id="user-period" type="text" placeholder="例：2025年4月" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+    </div>
+  </div>
+
+  <div class="undo-bar">
+    <button id="undo-btn" disabled onclick="undo()">↩ 元に戻す</button>
+  </div>
+  <div id="cards-wrap"></div>
+</div>
+
+<!-- ══ 履歴ページ ══ -->
+<div id="page-history" class="page">
+  <div class="hist-header">
+    <button class="hist-back" onclick="showPage('main')">‹ 戻る</button>
+    <span class="hist-title">保存履歴</span>
+    <span class="hist-count" id="hist-count"></span>
+  </div>
+  <div id="hist-list"></div>
+</div>
+
+<!-- ══ プルダウン管理ページ ══ -->
+<div id="page-options" class="page">
+  <div class="hist-header">
+    <button class="hist-back" onclick="showPage('main')">‹ 戻る</button>
+    <span class="hist-title">プルダウン項目管理</span>
+  </div>
+  <div id="opts-wrap"></div>
+</div>
+
+<!-- ══ 下部バー（2行レイアウト）══ -->
+<div class="bottom-bar" id="main-bar">
+  <div class="bar-row">
+    <button class="bar-btn bar-btn-blue"  onclick="showPage('history')">📋 履歴</button>
+    <button class="bar-btn bar-btn-ghost" onclick="showPage('options')">⚙️ 項目</button>
+    <button class="bar-btn bar-btn-ghost" onclick="openPreview()">🖨️ 印刷/PDF</button>
+  </div>
+  <div class="bar-row">
+    <button class="bar-btn bar-btn-red"   onclick="resetData()">🔄 リセット</button>
+    <button class="bar-btn bar-btn-accent bar-btn-wide" onclick="saveSnapshot()">💾 保存</button>
+  </div>
+</div>
+
+<!-- ══ 印刷専用テーブル（@media print でのみ表示）══ -->
+<div id="print-view" aria-hidden="true">
+  <div id="print-info"></div>
+  <table id="print-table">
+    <colgroup>
+      <col class="col-day">
+      <col class="col-slot"><col class="col-slot">
+      <col class="col-slot"><col class="col-slot">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>曜日</th>
+        <th class="th-morning">🌅 朝</th>
+        <th class="th-noon">☀️ 昼</th>
+        <th class="th-evening">🌇 夕</th>
+        <th class="th-night">🌙 夜</th>
+      </tr>
+    </thead>
+    <tbody id="print-tbody"></tbody>
+  </table>
+</div>
+
+<!-- ══ プレビューモーダル ══ -->
+<div class="modal-overlay" id="preview-modal" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title" onclick="closePreviewOutside(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="preview-modal-title">🖨️ 印刷プレビュー</span>
+      <button class="modal-close" onclick="closePreview()" aria-label="プレビューを閉じる">✕</button>
+    </div>
+    <div class="modal-body" id="preview-body"></div>
+    <div class="modal-footer" id="preview-footer">
+      <button class="modal-btn modal-btn-cancel" onclick="closePreview()">閉じる</button>
+      <button class="modal-btn modal-btn-print pc-only" id="btn-print" onclick="printSchedule()">🖨️ 印刷する</button>
+      <button class="modal-btn modal-btn-txt"    onclick="exportTxt()">📄 テキスト</button>
+      <button class="modal-btn modal-btn-pdf"    onclick="savePdfDirect()">📥 PDF保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ タグ編集ダイアログ ══ -->
+<div class="edit-overlay" id="edit-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-dialog-title">
+  <div class="edit-box">
+    <div class="edit-box-title" id="edit-dialog-title">✏️ ケア内容を編集</div>
+    <input class="edit-box-input" id="edit-input" type="text"
+      autocomplete="off" autocorrect="off" autocapitalize="none"
+      spellcheck="false" enterkeyhint="done" placeholder="内容を入力">
+    <div class="edit-box-btns">
+      <button class="edit-box-btn edit-cancel" id="edit-cancel-btn">キャンセル</button>
+      <button class="edit-box-btn edit-save"   id="edit-save-btn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 確認ダイアログ ══ -->
+<div class="confirm-overlay" id="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title"></div>
+    <div class="confirm-msg"   id="confirm-msg"></div>
+    <div class="confirm-btns">
+      <button class="confirm-btn confirm-cancel" id="confirm-cancel-btn">キャンセル</button>
+      <button class="confirm-btn" id="confirm-ok-btn">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+'use strict';
+const STORAGE_KEY  = 'schedule-v5';
+const CUSTOM_KEY   = 'schedule-custom-v5';
+const HISTORY_KEY  = 'schedule-history-v5';
+const USER_KEY     = 'schedule-user-v5';
+const MAX_HISTORY  = 10;
+
+const DAYS  = ['月曜日','火曜日','水曜日','木曜日','金曜日','土曜日','日曜日'];
+const SLOTS = ['morning','noon','evening','night'];
+const SLOT_META  = { morning:{label:'🌅 朝'}, noon:{label:'☀️ 昼'}, evening:{label:'🌇 夕'}, night:{label:'🌙 夜'} };
+const SLOT_LABEL = { morning:'朝', noon:'昼', evening:'夕', night:'夜' };
+
+const BASE_OPTIONS = {
+  morning: ['排泄ケア','モーニングケア','食事準備','朝食介助','服薬確認','起床介助','着替え介助','口腔ケア','バイタルチェック','洗顔介助','体位変換'],
+  noon:    ['昼食介助','服薬確認','口腔ケア','体操','入浴介助','体位変換','水分補給','バイタルチェック','排泄ケア'],
+  evening: ['夕食介助','服薬確認','口腔ケア','排泄ケア','体位変換','イブニングケア','バイタルチェック','水分補給','着替え介助'],
+  night:   ['就寝準備','体位変換','排泄ケア','ナイトケア','バイタルチェック','見守り','服薬確認','水分補給'],
+};
+
+let customOptions = { morning:[], noon:[], evening:[], night:[] };
+const allOpts = slot => [...BASE_OPTIONS[slot], ...customOptions[slot].filter(v => !BASE_OPTIONS[slot].includes(v))];
+
+let data = {};
+const undoStack = [];
+
+/* ══ 利用者情報 ══ */
+function getUserInfo() {
+  return {
+    name:   document.getElementById('user-name').value.trim(),
+    staff:  document.getElementById('user-staff').value.trim(),
+    period: document.getElementById('user-period').value.trim(),
+  };
+}
+function loadUserInfo() {
+  try {
+    const u = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
+    if (u.name)   document.getElementById('user-name').value   = u.name;
+    if (u.staff)  document.getElementById('user-staff').value  = u.staff;
+    if (u.period) document.getElementById('user-period').value = u.period;
+  } catch (e) { console.warn('loadUserInfo failed:', e); }
+}
+function saveUserInfo() {
+  try { localStorage.setItem(USER_KEY, JSON.stringify(getUserInfo())); } catch (e) {
+    if (e && e.name === 'QuotaExceededError') showToast('⚠️ 利用者情報の保存に失敗しました。容量が不足しています。');
+  }
+}
+
+/* ══ ページ切替 ══ */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+  if (name === 'history') renderHistoryPage();
+  if (name === 'options') renderOptionsPage();
+}
+
+/* ══ Undo ══ */
+function snapshot() {
+  undoStack.push(JSON.stringify(data));
+  if (undoStack.length > 30) undoStack.shift();
+  document.getElementById('undo-btn').disabled = false;
+}
+function undo() {
+  if (!undoStack.length) return;
+  data = JSON.parse(undoStack.pop());
+  if (!undoStack.length) document.getElementById('undo-btn').disabled = true;
+  DAYS.forEach(day => SLOTS.forEach(slot => renderTags(day, slot)));
+  persistData();
+  showToast('元に戻しました');
+}
+
+/* ══ ストレージ ══ */
+function loadFromStorage() {
+  try { const s = localStorage.getItem(STORAGE_KEY); data = s ? JSON.parse(s) : { '月曜日-morning': ['排泄ケア','モーニングケア','食事準備'] }; }
+  catch (e) { console.warn('loadFromStorage failed:', e); data = { '月曜日-morning': ['排泄ケア','モーニングケア','食事準備'] }; }
+  try { const c = localStorage.getItem(CUSTOM_KEY); if (c) customOptions = JSON.parse(c); } catch (e) { console.warn('loadCustomOptions failed:', e); }
+}
+
+function persistData() {
+  const el = document.getElementById('save-status');
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify(customOptions));
+    saveUserInfo();
+    const t = new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' });
+    el.textContent = '✔ 自動保存（' + t + '）';
+    el.className = 'saved';
+  } catch (e) {
+    const msg = (e && e.name === 'QuotaExceededError')
+      ? '⚠️ 保存容量が不足しています。履歴を削除してください。'
+      : '⚠️ 保存に失敗しました。';
+    el.textContent = msg;
+    el.className = '';
+    showToast(msg);
+  }
+}
+
+/* ══ 履歴 ══ */
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+function saveHistory(hist) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+  } catch (e) {
+    if (e && e.name === 'QuotaExceededError') {
+      showToast('⚠️ 履歴の保存容量が不足しています。古い履歴を削除してください。');
+    }
+  }
+}
+
+function saveSnapshot() {
+  const hist = loadHistory();
+  const now  = new Date();
+  const label = now.toLocaleDateString('ja-JP', { month:'numeric', day:'numeric', weekday:'short' })
+              + ' ' + now.toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' });
+  hist.unshift({ label, ts: now.getTime(), data: JSON.parse(JSON.stringify(data)), user: getUserInfo() });
+  if (hist.length > MAX_HISTORY) hist.length = MAX_HISTORY;
+  saveHistory(hist);
+  persistData();
+  showToast('履歴に保存しました（最大' + MAX_HISTORY + '件）');
+}
+
+function restoreHistory(idx) {
+  const hist = loadHistory();
+  if (!hist[idx]) return;
+  const h = hist[idx];
+
+  showConfirm(
+    '履歴を復元',
+    h.label + ' のデータを復元します。\n現在のスケジュールは上書きされます。',
+    '復元する', 'confirm-ok-blue',
+    function() {
+      // ① データ復元
+      data = JSON.parse(JSON.stringify(h.data));
+
+      // ② 利用者情報復元
+      if (h.user) {
+        document.getElementById('user-name').value   = h.user.name   || '';
+        document.getElementById('user-staff').value  = h.user.staff  || '';
+        document.getElementById('user-period').value = h.user.period || '';
+        saveUserInfo();
+      }
+
+      // ③ メインページに切替（display:block 後にDOM操作）
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('page-main').classList.add('active');
+      window.scrollTo(0, 0);
+
+      // ④ カード全体を再構築
+      buildCards();
+      persistData();
+      showToast('復元しました');
+    }
+  );
+}
+
+function deleteHistory(idx) {
+  const hist = loadHistory();
+  if (!hist[idx]) return;
+  const label = hist[idx].label;
+
+  showConfirm(
+    '履歴を削除',
+    label + ' を削除します。この操作は元に戻せません。',
+    '削除する', 'confirm-ok-red',
+    function() {
+      const h2 = loadHistory();
+      h2.splice(idx, 1);
+      saveHistory(h2);
+      renderHistoryPage();
+      showToast('削除しました');
+    }
+  );
+}
+
+function removeCustomOption(slot, value) {
+  // カスタム項目のみ削除可能
+  customOptions[slot] = customOptions[slot].filter(v => v !== value);
+  // 全セルのプルダウンから該当optionを除去
+  DAYS.forEach(day => {
+    const sel = document.getElementById('sel-' + day + '-' + slot);
+    if (!sel) return;
+    Array.from(sel.options).forEach(function(opt) {
+      if (opt.value === value) sel.removeChild(opt);
+    });
+  });
+  persistData();
+  renderOptionsPage();
+  showToast('「' + value + '」をプルダウンから削除しました');
+}
+
+function renderOptionsPage() {
+  const wrap = document.getElementById('opts-wrap');
+  wrap.innerHTML = '';
+  const slotIcons = { morning:'🌅 朝', noon:'☀️ 昼', evening:'🌇 夕', night:'🌙 夜' };
+
+  SLOTS.forEach(function(slot) {
+    const card = document.createElement('div');
+    card.className = 'opts-slot-card';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'opts-slot-header ' + slot;
+    hdr.textContent = slotIcons[slot] + ' の項目';
+    card.appendChild(hdr);
+
+    // カスタム項目（削除可能）
+    const customs = customOptions[slot];
+    if (customs.length) {
+      customs.forEach(function(v) {
+        const item = document.createElement('div');
+        item.className = 'opts-item';
+        const badge = document.createElement('span');
+        badge.className = 'opts-item-badge';
+        badge.textContent = '追加';
+        const lbl = document.createElement('span');
+        lbl.className = 'opts-item-label';
+        lbl.textContent = v;
+        const del = document.createElement('button');
+        del.className = 'opts-item-del';
+        del.textContent = '削除';
+        del.setAttribute('data-slot', slot);
+        del.setAttribute('data-val', v);
+        del.addEventListener('click', function() {
+          var s = this.getAttribute('data-slot');
+          var val = this.getAttribute('data-val');
+          showConfirm(
+            'プルダウンから削除',
+            '「' + val + '」をプルダウンメニューから削除します。',
+            '削除する', 'confirm-ok-red',
+            function() { removeCustomOption(s, val); }
+          );
+        });
+        item.appendChild(badge);
+        item.appendChild(lbl);
+        item.appendChild(del);
+        card.appendChild(item);
+      });
+    }
+
+    // ベース項目（固定・削除不可）
+    BASE_OPTIONS[slot].forEach(function(v) {
+      const item = document.createElement('div');
+      item.className = 'opts-item';
+      const badge = document.createElement('span');
+      badge.className = 'opts-item-badge';
+      badge.textContent = '固定';
+      const lbl = document.createElement('span');
+      lbl.className = 'opts-item-label base';
+      lbl.textContent = v;
+      item.appendChild(badge);
+      item.appendChild(lbl);
+      card.appendChild(item);
+    });
+
+    wrap.appendChild(card);
+  });
+
+  const note = document.createElement('div');
+  note.className = 'opts-note';
+  note.textContent = '「固定」項目は削除できません。「追加」項目のみ削除可能です。';
+  wrap.appendChild(note);
+}
+
+function renderHistoryPage() {
+  const hist = loadHistory();
+  document.getElementById('hist-count').textContent = hist.length + ' / ' + MAX_HISTORY + '件';
+  const list = document.getElementById('hist-list');
+  list.innerHTML = '';
+  if (!hist.length) {
+    const em = document.createElement('div');
+    em.className = 'hist-empty';
+    em.textContent = '保存履歴がありません。\n「💾 保存」ボタンで履歴に追加できます。';
+    list.appendChild(em);
+    return;
+  }
+  hist.forEach((h, i) => {
+    const card = document.createElement('div');
+    card.className = 'hist-card';
+
+    // ── ヘッダー（正しい挿入順序）──
+    const hdr = document.createElement('div');
+    hdr.className = 'hist-card-header';
+
+    // 左側：タイトル＋サブ情報を囲むdiv
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'hist-title-wrap';
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'hist-card-time';
+    const userName = (h.user && h.user.name) ? ' ' + h.user.name + ' 様' : '';
+    timeEl.textContent = '📅 ' + h.label + userName;
+    titleWrap.appendChild(timeEl);
+
+    if (h.user && (h.user.staff || h.user.period)) {
+      const sub = document.createElement('div');
+      sub.className = 'hist-card-sub';
+      const subText = [];
+      if (h.user.staff)  subText.push('担当：' + h.user.staff);
+      if (h.user.period) subText.push('期間：' + h.user.period);
+      sub.textContent = subText.join('　');
+      titleWrap.appendChild(sub);
+    }
+    hdr.appendChild(titleWrap);
+
+    // 右側：ボタン群
+    const acts = document.createElement('div');
+    acts.className = 'hist-card-actions';
+
+    const restBtn = document.createElement('button');
+    restBtn.className = 'hist-act-btn hist-act-restore';
+    restBtn.textContent = '復元';
+    restBtn.setAttribute('data-idx', String(i));
+    restBtn.addEventListener('click', function() {
+      restoreHistory(parseInt(this.getAttribute('data-idx'), 10));
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'hist-act-btn hist-act-delete';
+    delBtn.textContent = '削除';
+    delBtn.setAttribute('data-idx', String(i));
+    delBtn.addEventListener('click', function() {
+      deleteHistory(parseInt(this.getAttribute('data-idx'), 10));
+    });
+
+    acts.appendChild(restBtn);
+    acts.appendChild(delBtn);
+    hdr.appendChild(acts);  // ★ titleWrap の後に acts のみ追加（timeEl の再追加なし）
+
+    // 本文サマリー
+    const body = document.createElement('div');
+    body.className = 'hist-card-body';
+    DAYS.forEach(day => {
+      const allTags = SLOTS.flatMap(slot => (h.data[day+'-'+slot] || []));
+      if (!allTags.length) return;
+      const row = document.createElement('div');
+      row.className = 'hist-day-row';
+      const nm = document.createElement('span');
+      nm.className = 'hist-day-name';
+      nm.textContent = day.replace('曜日','');
+      const sm = document.createElement('span');
+      sm.className = 'hist-day-summary';
+      sm.textContent = allTags.join('・');
+      row.appendChild(nm); row.appendChild(sm);
+      body.appendChild(row);
+    });
+    if (!body.children.length) {
+      const noContent = document.createElement('span');
+      noContent.className = 'hist-no-content';
+      noContent.textContent = '（内容なし）';
+      body.appendChild(noContent);
+    }
+
+    card.appendChild(hdr); card.appendChild(body);
+    list.appendChild(card);
+  });
+}
+
+/* ══ タグ操作 ══ */
+const key     = (day, slot) => `${day}-${slot}`;
+const getTags = (day, slot) => data[key(day, slot)] || [];
+const setTags = (day, slot, tags) => { data[key(day, slot)] = tags; };
+
+function addTag(day, slot, value) {
+  const v = value.trim();
+  if (!v) return;
+  const tags = getTags(day, slot);
+  if (tags.includes(v)) { showToast('すでに追加されています'); return; }
+  snapshot();
+  tags.push(v);
+  setTags(day, slot, tags);
+  if (!allOpts(slot).includes(v)) {
+    customOptions[slot].push(v);
+    // 全曜日のプルダウンに追加
+    DAYS.forEach(function(d) {
+      const s = document.getElementById('sel-' + d + '-' + slot);
+      if (s && !Array.from(s.options).some(function(o) { return o.value === v; })) {
+        const opt = document.createElement('option'); opt.value = v; opt.textContent = v; s.appendChild(opt);
+      }
+    });
+  }
+  renderTags(day, slot);
+  persistData();
+}
+
+function removeTag(day, slot, value) {
+  snapshot();
+  setTags(day, slot, getTags(day, slot).filter(t => t !== value));
+  renderTags(day, slot);
+  persistData();
+}
+
+function renderTags(day, slot) {
+  const list = document.getElementById(`tags-${day}-${slot}`);
+  if (!list) return;
+  list.innerHTML = '';
+  getTags(day, slot).forEach(t => {
+    const tag = document.createElement('span');
+    tag.className = `tag tag-${slot}`;
+
+    const lbl = document.createElement('span');
+    lbl.className = 'tag-label';
+    lbl.textContent = t;
+    lbl.setAttribute('title', 'タップして編集');
+    // タップで編集ダイアログを開く
+    lbl.addEventListener('click', function() { editTag(day, slot, t); });
+
+    const rm = document.createElement('button');
+    rm.className = 'tag-remove'; rm.type = 'button';
+    rm.setAttribute('aria-label', t + 'を削除'); rm.textContent = '×';
+    rm.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      // 削除確認ダイアログ
+      showConfirm(
+        'ケア内容を削除',
+        '「' + t + '」を削除しますか？',
+        '削除する', 'confirm-ok-red',
+        function() { removeTag(day, slot, t); }
+      );
+    });
+
+    tag.appendChild(lbl); tag.appendChild(rm);
+    list.appendChild(tag);
+  });
+  // 印刷テーブルも同期更新
+  updatePrintCell(day, slot);
+}
+
+/* ══ カード構築 ══ */
+function buildSlot(day, slot) {
+  const section = document.createElement('div');
+  section.className = 'slot-section';
+
+  const hdr = document.createElement('div');
+  hdr.className = `slot-header ${slot}`;
+  const bar = document.createElement('div'); bar.className = `slot-bar ${slot}`;
+  hdr.appendChild(bar);
+  hdr.appendChild(document.createTextNode(SLOT_META[slot].label));
+  section.appendChild(hdr);
+
+  const tagList = document.createElement('div');
+  tagList.className = 'tag-list'; tagList.id = `tags-${day}-${slot}`;
+  section.appendChild(tagList);
+
+  const inputArea = document.createElement('div');
+  inputArea.className = 'input-area';
+
+  // プルダウン
+  const selWrap = document.createElement('div'); selWrap.className = 'ios-select-wrap';
+  const sel = document.createElement('select');
+  sel.className = 'ios-select'; sel.id = `sel-${day}-${slot}`;
+  sel.setAttribute('aria-label', SLOT_LABEL[slot] + 'のケア項目を選択');
+  const ph = document.createElement('option'); ph.value = ''; ph.textContent = '＋ 項目を選んで追加';
+  sel.appendChild(ph);
+  allOpts(slot).forEach(o => {
+    const opt = document.createElement('option'); opt.value = o; opt.textContent = o; sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => { if (sel.value) { addTag(day, slot, sel.value); sel.value = ''; } });
+  selWrap.appendChild(sel);
+  inputArea.appendChild(selWrap);
+
+  // 自由入力
+  const freeRow = document.createElement('div'); freeRow.className = 'free-row';
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.className = 'ios-input'; inp.placeholder = '自由入力して追加…';
+  inp.setAttribute('autocomplete','off'); inp.setAttribute('autocorrect','off');
+  inp.setAttribute('autocapitalize','none'); inp.setAttribute('spellcheck','false');
+  inp.setAttribute('enterkeyhint','done');
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addTag(day, slot, inp.value); inp.value = ''; }
+  });
+  const btn = document.createElement('button');
+  btn.className = 'ios-add-btn'; btn.type = 'button'; btn.textContent = '追加';
+  btn.addEventListener('click', () => { addTag(day, slot, inp.value); inp.value = ''; });
+  freeRow.appendChild(inp); freeRow.appendChild(btn);
+  inputArea.appendChild(freeRow);
+
+  section.appendChild(inputArea);
+  return section;
+}
+
+function buildCards() {
+  const wrap = document.getElementById('cards-wrap');
+  wrap.innerHTML = '';
+  DAYS.forEach(day => {
+    const card = document.createElement('div');
+    card.className = 'day-card';
+    const dayHdr = document.createElement('div');
+    dayHdr.className = 'day-header'; dayHdr.textContent = day;
+    card.appendChild(dayHdr);
+    SLOTS.forEach((slot, i) => {
+      if (i > 0) { const sep = document.createElement('div'); sep.className = 'slot-sep'; card.appendChild(sep); }
+      card.appendChild(buildSlot(day, slot));
+    });
+    wrap.appendChild(card);
+  });
+  // 印刷テーブルのDOMを先に構築してからrenderTags（ptc-* IDが確実に存在する状態で更新）
+  buildPrintTable();
+  DAYS.forEach(day => SLOTS.forEach(slot => renderTags(day, slot)));
+}
+
+/* ══ 印刷テーブル構築 ══ */
+function buildPrintTable() {
+  const tbody = document.getElementById('print-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  DAYS.forEach(function(day) {
+    const tr = document.createElement('tr');
+    const th = document.createElement('td');
+    th.className = 'td-day';
+    th.textContent = day.replace('曜日', '\n曜日');
+    th.style.whiteSpace = 'pre';
+    tr.appendChild(th);
+    SLOTS.forEach(function(slot) {
+      const td = document.createElement('td');
+      td.id = 'ptc-' + day + '-' + slot;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  // セルの描画は buildCards 側の renderTags → updatePrintCell に委譲
+  updatePrintInfo();
+}
+
+/* ══ 印刷テーブルのセル更新 ══ */
+function updatePrintCell(day, slot) {
+  const td = document.getElementById('ptc-' + day + '-' + slot);
+  if (!td) return;
+  td.innerHTML = '';
+  const tags = getTags(day, slot);
+  if (tags.length) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pt-tags';
+    tags.forEach(function(t) {
+      const chip = document.createElement('span');
+      chip.className = 'pt-tag ' + slot;
+      chip.textContent = t;
+      wrap.appendChild(chip);
+    });
+    td.appendChild(wrap);
+  } else {
+    const em = document.createElement('span');
+    em.className = 'pt-empty';
+    em.textContent = '─';
+    td.appendChild(em);
+  }
+}
+
+/* ══ 印刷ヘッダー更新 ══ */
+function updatePrintInfo() {
+  const el = document.getElementById('print-info');
+  if (!el) return;
+  el.innerHTML = '';
+  const u = getUserInfo();
+
+  const title = document.createElement('span');
+  title.className = 'pi-title';
+  title.textContent = '週間スケジュール表';
+  el.appendChild(title);
+
+  [['利用者', u.name ? u.name + ' 様' : ''], ['担当者', u.staff], ['期間', u.period]].forEach(function(pair) {
+    if (!pair[1]) return;
+    const f = document.createElement('span');
+    f.className = 'pi-field';
+    const lbl = document.createElement('span');
+    lbl.className = 'pi-label';
+    lbl.textContent = pair[0] + '：';
+    f.appendChild(lbl);
+    f.appendChild(document.createTextNode(pair[1]));
+    el.appendChild(f);
+  });
+}
+
+/* ══ プレビューモーダル ══ */
+function openPreview() {
+  const body = document.getElementById('preview-body');
+  body.innerHTML = '';
+
+  // 利用者情報ヘッダー（XSS安全: textContentのみ使用）
+  const u = getUserInfo();
+  if (u.name || u.staff || u.period) {
+    const infoBox = document.createElement('div');
+    infoBox.className = 'preview-info-box';
+    const _infoRows = [
+      { label: '利用者氏名：', value: u.name  ? u.name + ' 様' : null },
+      { label: '担当者名：',   value: u.staff  || null },
+      { label: '対象期間：',   value: u.period || null },
+    ];
+    _infoRows.forEach(({ label, value }) => {
+      if (!value) return;
+      const row = document.createElement('div');
+      const strong = document.createElement('strong');
+      strong.textContent = label;
+      row.appendChild(strong);
+      row.appendChild(document.createTextNode(value));
+      infoBox.appendChild(row);
+    });
+    body.appendChild(infoBox);
+  }
+
+  // 一覧表を構築（スマホ横スクロール対応）
+  const tblWrap = document.createElement('div');
+  tblWrap.className = 'preview-table-wrap';
+  body.appendChild(tblWrap);
+  const tbl = document.createElement('table');
+  tbl.className = 'preview-table';
+
+  // ヘッダー行
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  const cornerTh = document.createElement('th');
+  cornerTh.textContent = '曜日';
+  headRow.appendChild(cornerTh);
+  SLOTS.forEach(slot => {
+    const th = document.createElement('th');
+    th.className = `th-${slot}`;
+    const icons = { morning:'🌅 朝', noon:'☀️ 昼', evening:'🌇 夕', night:'🌙 夜' };
+    th.textContent = icons[slot];
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  tbl.appendChild(thead);
+
+  // データ行（曜日ごと）
+  const tbody = document.createElement('tbody');
+  DAYS.forEach(day => {
+    const tr = document.createElement('tr');
+    // 曜日セル
+    const dayTd = document.createElement('td');
+    dayTd.className = 'td-day';
+    dayTd.textContent = day;
+    tr.appendChild(dayTd);
+    // 各時間帯セル
+    SLOTS.forEach(slot => {
+      const td = document.createElement('td');
+      const tags = getTags(day, slot);
+      if (tags.length) {
+        const wrap = document.createElement('div');
+        wrap.className = 'preview-tag-wrap';
+        tags.forEach(t => {
+          const tg = document.createElement('span');
+          tg.className = `preview-tag ${slot}`;
+          tg.textContent = t;
+          wrap.appendChild(tg);
+        });
+        td.appendChild(wrap);
+      } else {
+        const em = document.createElement('span');
+        em.className = 'preview-empty-cell';
+        em.textContent = '─';
+        td.appendChild(em);
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  tblWrap.appendChild(tbl);
+  document.getElementById('preview-modal').classList.add('open');
+}
+
+function closePreview() { document.getElementById('preview-modal').classList.remove('open'); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   印刷用 HTML 生成
+   ─ 縦軸 = 曜日（月〜日）  /  横軸 = 朝・昼・夕・夜
+   ─ @page A4 横 (297×210mm、余白 8mm → 印刷可能域 281×194mm)
+   ─ zoom プロパティで1ページに自動収束（transform は印刷エンジンに無視される）
+   ─ 外部ライブラリ不要・純粋な CSS/HTML のみ
+════════════════════════════════════════════════════════════════════════ */
+function buildPrintHtml() {
+  const u = getUserInfo();
+
+  /* ── 利用者情報ヘッダー ── */
+  let infoHtml = '';
+  [
+    ['利用者', u.name ? u.name + '\u00a0様' : ''],
+    ['担当者', u.staff],
+    ['期間',   u.period],
+  ].forEach(function(pair) {
+    if (!pair[1]) return;
+    infoHtml +=
+      '<span class="fi">'
+      + '<span class="fl">' + escHtml(pair[0]) + '：</span>'
+      + escHtml(pair[1])
+      + '</span>';
+  });
+
+  /* ── テーブル行（縦=曜日、横=朝昼夕夜）── */
+  const rowsHtml = DAYS.map(function(day) {
+    const dayShort = escHtml(day.replace('曜日', ''));
+    let cells = '<td class="dc">' + dayShort + '<br><small>曜日</small></td>';
+    SLOTS.forEach(function(slot) {
+      const tags = getTags(day, slot);
+      cells += tags.length
+        ? '<td><div class="tw">'
+            + tags.map(function(t) {
+                return '<span class="tc ' + slot + '">' + escHtml(t) + '</span>';
+              }).join('')
+            + '</div></td>'
+        : '<td><span class="te">─</span></td>';
+    });
+    return '<tr>' + cells + '</tr>';
+  }).join('');
+
+  /*
+   * CSS 設計方針:
+   * ─ body / #wrap に幅のみ固定。高さは固定しない（自然高で計測するため）
+   * ─ zoom をJSで後から注入するため、ここでは zoom:1 のプレースホルダを置く
+   * ─ overflow-wrap:anywhere で長い日本語テキストを適切に折り返す
+   * ─ word-break:break-all は使わない（日本語テキストを不自然に分断する）
+   */
+  const css = [
+    '@page{size:A4 landscape;margin:8mm}',
+    '*{box-sizing:border-box;margin:0;padding:0;',
+    ' -webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    'html{background:#fff}',
+    /* zoom はJSで注入。幅のみ固定して高さは自然に流す */
+    'body{width:281mm;margin:0;padding:0;background:#fff;',
+    ' font-family:"Noto Sans JP",-apple-system,sans-serif;',
+    ' color:#1c1c1e;zoom:1}',              /* ← JS が zoom 値を上書き */
+    '#wrap{width:281mm}',
+
+    /* 利用者情報ヘッダー: 幅全体・自然高 */
+    '#hd{display:flex;align-items:center;flex-wrap:wrap;',
+    ' gap:1mm 5mm;padding-bottom:1.5mm;',
+    ' border-bottom:.4mm solid #3a3a3c;margin-bottom:2mm;font-size:7.5pt}',
+    '.ht{font-size:10pt;font-weight:700;letter-spacing:.05em;',
+    ' white-space:nowrap;margin-right:3mm}',
+    '.fl{font-weight:700;margin-right:.3mm}',
+    '.fi{color:#3a3a3c;white-space:nowrap;margin-right:3mm}',
+
+    /* テーブル: 幅100%・table-layout:fixed で列幅を制御 */
+    'table{width:100%;border-collapse:collapse;table-layout:fixed}',
+    /* 曜日列 10mm / 時間帯列 = (281-10)/4 ≈ 67.75mm */
+    'col.cd{width:10mm}col.cs{width:67.75mm}',
+
+    /* ヘッダー行 */
+    'th{border:.3mm solid #999;font-weight:700;font-size:8pt;',
+    ' text-align:center;padding:1.5mm 1mm;white-space:nowrap;',
+    ' background:#f0f0f5;vertical-align:middle}',
+    'thead th:first-child{background:#3a3a3c;color:#fff}',
+    '.hm{color:#856404}.hn{color:#0f5132}.he{color:#084298}.hni{color:#432874}',
+
+    /* データ行: 高さ固定なし。zoom で全体を縮小して1ページに収める */
+    'td{border:.3mm solid #bbb;padding:1.5mm 1.5mm;',
+    ' vertical-align:top;font-size:7pt;line-height:1.5;',
+    ' overflow-wrap:anywhere}',            /* ← break-all の代わり */
+    'td.dc{font-weight:700;font-size:9pt;text-align:center;',
+    ' vertical-align:middle;background:#f0f0f5;white-space:nowrap;line-height:1.3}',
+    'td.dc small{display:block;font-size:6pt;font-weight:400;',
+    ' color:#555;line-height:1.2;margin-top:.5mm}',
+
+    /* タグチップ */
+    '.tw{display:flex;flex-wrap:wrap;gap:1mm;align-content:flex-start}',
+    '.tc{display:inline-block;font-size:6.5pt;font-weight:500;',
+    ' padding:.5mm 2mm;border-radius:3px;white-space:nowrap;line-height:1.5}',
+    '.tc.morning{background:#fff3cd;color:#856404}',
+    '.tc.noon   {background:#d1e7dd;color:#0f5132}',
+    '.tc.evening{background:#cfe2ff;color:#084298}',
+    '.tc.night  {background:#e2d9f3;color:#432874}',
+    '.te{color:#bbb;font-size:6.5pt}',
+
+    /* 印刷時ページ分割禁止 */
+    '@media print{table,tbody tr{page-break-inside:avoid;break-inside:avoid}}',
+  ].join('');
+
+  return [
+    '<!DOCTYPE html><html lang="ja">',
+    '<head>',
+    '<meta charset="UTF-8">',
+    '<link rel="preconnect" href="https://fonts.googleapis.com">',
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">',
+    '<style>', css, '</style>',
+    '</head>',
+    '<body>',
+    '<div id="wrap">',
+      '<div id="hd">',
+        '<span class="ht">週間スケジュール表</span>',
+        infoHtml,
+      '</div>',
+      '<table>',
+        '<colgroup>',
+          '<col class="cd">',
+          '<col class="cs"><col class="cs"><col class="cs"><col class="cs">',
+        '</colgroup>',
+        '<thead><tr>',
+          '<th>曜日</th>',
+          '<th class="hm">🌅&nbsp;朝</th>',
+          '<th class="hn">☀️&nbsp;昼</th>',
+          '<th class="he">🌇&nbsp;夕</th>',
+          '<th class="hni">🌙&nbsp;夜</th>',
+        '</tr></thead>',
+        '<tbody>', rowsHtml, '</tbody>',
+      '</table>',
+    '</div>',
+    '</body></html>',
+  ].join('');
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   印刷ズーム適用
+   ─ transform:scale() は印刷エンジンに無視されるため使用しない
+   ─ zoom プロパティを body に設定する（Chrome/Edge/Safari の印刷エンジンが尊重）
+   ─ 自然高さを計測 → A4横印刷可能域(281×194mm)に収まるズーム値を算出
+════════════════════════════════════════════════════════════════════════ */
+function _applyPrintZoom(idoc) {
+  const body = idoc.body;
+  const wrap = idoc.getElementById('wrap');
+  if (!body || !wrap) return;
+
+  /* iframe 内で mm→px 変換係数を実測（DPIに依存しない正確な方法） */
+  const probe = idoc.createElement('div');
+  probe.style.cssText =
+    'position:absolute;top:-9999px;left:0;' +
+    'width:100mm;height:1px;visibility:hidden;zoom:1';
+  body.appendChild(probe);
+  const pxPer100mm = probe.offsetWidth;
+  body.removeChild(probe);
+
+  /* offsetWidth が 0 になる場合のフォールバック（96dpi 相当） */
+  const MM_TO_PX = pxPer100mm > 0 ? pxPer100mm / 100 : 96 / 25.4;
+
+  const PAGE_W = 281 * MM_TO_PX; /* A4横 印刷可能域 幅 px */
+  const PAGE_H = 194 * MM_TO_PX; /* A4横 印刷可能域 高さ px */
+
+  /* zoom:1 の状態で自然サイズを計測 */
+  body.style.zoom = '1';
+  const natW = wrap.scrollWidth;
+  const natH = wrap.scrollHeight;
+
+  /* 幅・高さの両方に収まる最小倍率（拡大はしない） */
+  const zoom = Math.min(PAGE_W / natW, PAGE_H / natH, 1.0);
+
+  if (zoom < 0.9999) {
+    body.style.zoom = zoom.toFixed(6);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   隠し iframe による直接印刷
+   ─ 新タブ・ダウンロード不要
+   ─ iframe を A4横の物理サイズ (297×210mm) で生成
+     → iframe 内の CSS mm 単位が正確に計算される
+   ─ フォント確実読み込み → zoom 自動計算 → print() の順で実行
+════════════════════════════════════════════════════════════════════════ */
+function _printViaIframe(mode) {
+  closePreview();
+
+  /* 既存の印刷 iframe を除去 */
+  const old = document.getElementById('_print_iframe');
+  if (old) old.parentNode.removeChild(old);
+
+  /* A4横の物理サイズで iframe を生成（画面外に配置して視覚的に非表示） */
+  const iframe = document.createElement('iframe');
+  iframe.id = '_print_iframe';
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText =
+    'position:fixed;top:0;left:-9999px;' +
+    'width:297mm;height:210mm;' +   /* A4横 物理サイズ必須 */
+    'border:none;visibility:hidden;pointer-events:none;z-index:-1000';
+  document.body.appendChild(iframe);
+
+  const idoc = iframe.contentDocument;
+  idoc.open();
+  idoc.write(buildPrintHtml());
+  idoc.close();
+
+  /*
+   * フォント待機: fonts.ready だけでは webfont の描画完了が保証されないため
+   * 使用ウェイトを明示的にロードして Promise.all で待機する。
+   */
+  const fontLoads = [
+    idoc.fonts.ready,
+    idoc.fonts.load('400 10px "Noto Sans JP"').catch(function() {}),
+    idoc.fonts.load('700 10px "Noto Sans JP"').catch(function() {}),
+  ];
+
+  Promise.all(fontLoads).then(function() {
+    /* zoom でスケーリング適用（レイアウト確定後） */
+    _applyPrintZoom(idoc);
+
+    /*
+     * 150ms 待機: zoom 適用後の再レイアウトが印刷エンジンに
+     * 確実に反映されるのを待つ。
+     */
+    setTimeout(function() {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+
+      /* 60秒後に iframe を自動除去 */
+      setTimeout(function() {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 60000);
+    }, 150);
+
+  }).catch(function(err) {
+    console.warn('print: font load failed, proceeding anyway', err);
+    _applyPrintZoom(idoc);
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+  });
+
+  if (mode === 'pdf') {
+    showToast('📄 印刷ダイアログ →「PDFとして保存」を選択してください');
+  }
+}
+
+/* ══ 印刷する ══ */
+function printSchedule() { _printViaIframe('print'); }
+
+/* ══ PDF保存 ══ */
+function savePdfDirect()  { _printViaIframe('pdf'); }
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function closePreviewOutside(e) { if (e.target === document.getElementById('preview-modal')) closePreview(); }
+
+/* ══ エクスポート ══ */
+function dl(content, name, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function exportTxt() {
+  const u = getUserInfo();
+  const COL_DAY  = 5;   // 曜日列幅
+  const COL_SLOT = 22;  // 各時間帯列幅
+
+  function charWidth(c) {
+    const code = c.codePointAt(0);
+    // 絵文字・CJK統合漢字・全角記号 → 幅2
+    if (code > 0xffff) return 2;
+    if (code >= 0x1100 && code <= 0x11ff) return 2;
+    if (code >= 0x2e80 && code <= 0x9fff) return 2;
+    if (code >= 0xac00 && code <= 0xd7af) return 2;
+    if (code >= 0xf900 && code <= 0xfaff) return 2;
+    if (code >= 0xff01 && code <= 0xff60) return 2;
+    return 1;
+  }
+  function pad(str, len) {
+    let width = 0;
+    for (const c of [...str]) width += charWidth(c);
+    return str + ' '.repeat(Math.max(0, len - width));
+  }
+  function hline(dayW, cols) {
+    return '+' + '-'.repeat(dayW + 2) + '+' + cols.map(w => '-'.repeat(w + 2)).join('+') + '+\n';
+  }
+
+  let t = '週間スケジュール表\n' + '='.repeat(40) + '\n';
+  if (u.name)   t += `利用者氏名：${u.name} 様\n`;
+  if (u.staff)  t += `担当者名　：${u.staff}\n`;
+  if (u.period) t += `対象期間　：${u.period}\n`;
+  t += '\n';
+
+  const slotCols = [COL_SLOT, COL_SLOT, COL_SLOT, COL_SLOT];
+  const slotNames = ['朝', '昼', '夕', '夜'];
+
+  // ヘッダー行
+  t += hline(COL_DAY, slotCols);
+  t += '| ' + pad('曜日', COL_DAY) + ' | ';
+  t += slotNames.map((n, i) => pad(n, slotCols[i])).join(' | ') + ' |\n';
+  t += hline(COL_DAY, slotCols);
+
+  // データ行
+  DAYS.forEach(day => {
+    // 各列のタグ配列
+    const cells = SLOTS.map(slot => getTags(day, slot));
+    const maxRows = Math.max(1, ...cells.map(c => c.length));
+    for (let r = 0; r < maxRows; r++) {
+      const dayLabel = r === 0 ? day.replace('曜日', '') : '';
+      t += '| ' + pad(dayLabel, COL_DAY) + ' | ';
+      t += cells.map((tags, i) => {
+        const val = tags[r] !== undefined ? tags[r] : (r === 0 && tags.length === 0 ? '─' : '');
+        return pad(val, slotCols[i]);
+      }).join(' | ') + ' |\n';
+    }
+    t += hline(COL_DAY, slotCols);
+  });
+
+  dl(t, '週間スケジュール.txt', 'text/plain;charset=utf-8');
+  closePreview(); showToast('テキストを出力しました');
+}
+
+/* ══ その他アクション ══ */
+function resetData() {
+  showConfirm(
+    'スケジュールをリセット',
+    'すべてのスケジュール内容を削除します。利用者情報はそのまま保持されます。',
+    'リセットする', 'confirm-ok-red',
+    function() {
+      snapshot();
+      data = {};
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('page-main').classList.add('active');
+      window.scrollTo(0, 0);
+      buildCards();
+      persistData();
+      showToast('スケジュールをリセットしました');
+    }
+  );
+}
+
+/* ══ タグ編集ダイアログ ══ */
+function editTag(day, slot, oldValue) {
+  const overlay   = document.getElementById('edit-overlay');
+  const input     = document.getElementById('edit-input');
+  const saveBtn   = document.getElementById('edit-save-btn');
+  const cancelBtn = document.getElementById('edit-cancel-btn');
+
+  // イベントをクリーンに付け直す（cloneNode でリスナーをリセット）
+  const newSave   = saveBtn.cloneNode(true);
+  const newCancel = cancelBtn.cloneNode(true);
+  const newInput  = input.cloneNode(true);
+  saveBtn.parentNode.replaceChild(newSave,   saveBtn);
+  cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+  input.parentNode.replaceChild(newInput,   input);
+
+  newInput.value = oldValue;
+  overlay.classList.add('open');
+  const releaseTrap = trapFocus(document.querySelector('.edit-box'));
+  setTimeout(() => { newInput.focus(); newInput.select(); }, 100);
+
+  // close は一か所で定義し、リスナー解除もここで完結させる
+  function close() {
+    releaseTrap();
+    overlay.classList.remove('open');
+    overlay.removeEventListener('click', onOverlayClick);
+  }
+  function onOverlayClick(e) {
+    if (e.target === overlay) close();
+  }
+
+  function doSave() {
+    const newValue = newInput.value.trim();
+    if (!newValue) { showToast('内容を入力してください'); return; }
+    if (newValue === oldValue) { close(); return; }
+
+    const tags = getTags(day, slot);
+    if (tags.includes(newValue)) { showToast('同じ内容がすでに存在します'); return; }
+
+    snapshot();
+    const idx = tags.indexOf(oldValue);
+    if (idx !== -1) { tags[idx] = newValue; }
+    setTags(day, slot, tags);
+    renderTags(day, slot);
+    persistData();
+    close();
+    showToast('編集しました');
+  }
+
+  newSave.addEventListener('click', doSave);
+  newCancel.addEventListener('click', close);
+  newInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); doSave(); }
+  });
+  overlay.addEventListener('click', onOverlayClick);
+}
+
+/* ══ フォーカストラップユーティリティ ══
+   モーダル内でTabキーのフォーカスを閉じ込める（キーボードアクセシビリティ対応）
+   戻り値の release() を close 時に呼ぶことでリスナーを解除する             */
+function trapFocus(container) {
+  const focusable = 'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  function getEls() { return Array.from(container.querySelectorAll(focusable)); }
+
+  function onKeyDown(e) {
+    if (e.key !== 'Tab') return;
+    const els = getEls();
+    if (!els.length) { e.preventDefault(); return; }
+    const first = els[0];
+    const last  = els[els.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  document.addEventListener('keydown', onKeyDown);
+  // 初期フォーカスをコンテナ内の最初の要素に設定
+  const els = getEls();
+  if (els.length) els[0].focus();
+
+  return function release() { document.removeEventListener('keydown', onKeyDown); };
+}
+
+/* ══ 確認ダイアログ（iOS confirm代替）══ */
+function showConfirm(title, msg, okLabel, okClass, onOk) {
+  const overlay  = document.getElementById('confirm-overlay');
+  const titleEl  = document.getElementById('confirm-title');
+  const msgEl    = document.getElementById('confirm-msg');
+  const okBtn    = document.getElementById('confirm-ok-btn');
+  const cancelBtn= document.getElementById('confirm-cancel-btn');
+
+  titleEl.textContent = title;
+  msgEl.textContent   = msg;
+  okBtn.textContent   = okLabel;
+  okBtn.className     = 'confirm-btn ' + okClass;
+  overlay.classList.add('open');
+
+  // 既存イベントを毎回クリーンに付け直す
+  const newOk     = okBtn.cloneNode(true);
+  const newCancel = cancelBtn.cloneNode(true);
+  okBtn.parentNode.replaceChild(newOk, okBtn);
+  cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+  const releaseTrap = trapFocus(document.querySelector('.confirm-box'));
+
+  function close() {
+    releaseTrap();
+    overlay.classList.remove('open');
+    overlay.removeEventListener('click', onOverlayClick);
+  }
+  function onOverlayClick(e) { if (e.target === overlay) close(); }
+  overlay.addEventListener('click', onOverlayClick);
+  newOk.addEventListener('click', function() { close(); onOk(); });
+  newCancel.addEventListener('click', close);
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ══ 初期化 ══ */
+loadFromStorage();
+loadUserInfo();
+buildCards();
+document.getElementById('save-status').textContent = 'ブラウザを閉じても内容は保持されます';
+
+// 利用者情報の変更を自動保存 + 印刷ヘッダーも同期
+['user-name','user-staff','user-period'].forEach(id => {
+  document.getElementById(id).addEventListener('change', function() {
+    saveUserInfo();
+    updatePrintInfo();
+  });
+});
+</script>
+<script>
+/* ══ PWA: Service Worker 登録 ══ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(function(reg) {
+        console.log('SW registered:', reg.scope);
+      })
+      .catch(function(err) {
+        console.log('SW registration failed:', err);
+      });
+  });
+}
+</script>
+</body>
+</html>

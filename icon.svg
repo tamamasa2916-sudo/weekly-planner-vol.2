@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="108" fill="#c4704a"/>
+  <!-- ヘッダーバー -->
+  <rect x="72" y="100" width="368" height="52" rx="8" fill="rgba(0,0,0,0.22)"/>
+  <!-- 縦グリッド線 -->
+  <rect x="162" y="100" width="3" height="320" fill="rgba(255,255,255,0.28)"/>
+  <rect x="255" y="100" width="3" height="320" fill="rgba(255,255,255,0.28)"/>
+  <rect x="348" y="100" width="3" height="320" fill="rgba(255,255,255,0.28)"/>
+  <!-- 横グリッド線 -->
+  <rect x="72" y="152" width="368" height="2" fill="rgba(255,255,255,0.28)"/>
+  <rect x="72" y="232" width="368" height="2" fill="rgba(255,255,255,0.28)"/>
+  <rect x="72" y="312" width="368" height="2" fill="rgba(255,255,255,0.28)"/>
+  <!-- 曜日列 -->
+  <rect x="72" y="154" width="86" height="76" fill="rgba(255,255,255,0.18)"/>
+  <rect x="72" y="234" width="86" height="76" fill="rgba(255,255,255,0.18)"/>
+  <rect x="72" y="314" width="86" height="76" fill="rgba(255,255,255,0.18)"/>
+  <!-- タグ：朝（黄） -->
+  <rect x="172" y="165" width="68" height="20" rx="5" fill="#fff3cd"/>
+  <rect x="172" y="190" width="52" height="20" rx="5" fill="#fff3cd"/>
+  <!-- タグ：昼（緑） -->
+  <rect x="265" y="165" width="68" height="20" rx="5" fill="#d1e7dd"/>
+  <rect x="265" y="190" width="52" height="20" rx="5" fill="#d1e7dd"/>
+  <!-- タグ：夕（青） -->
+  <rect x="358" y="165" width="68" height="20" rx="5" fill="#cfe2ff"/>
+  <!-- タグ：2行目朝 -->
+  <rect x="172" y="245" width="68" height="20" rx="5" fill="#fff3cd"/>
+  <!-- タグ：2行目昼 -->
+  <rect x="265" y="245" width="52" height="20" rx="5" fill="#d1e7dd"/>
+  <rect x="265" y="270" width="68" height="20" rx="5" fill="#d1e7dd"/>
+  <!-- タグ：2行目夜（紫） -->
+  <rect x="358" y="245" width="68" height="20" rx="5" fill="#e2d9f3"/>
+  <!-- タグ：3行目 -->
+  <rect x="172" y="325" width="52" height="20" rx="5" fill="#fff3cd"/>
+  <rect x="265" y="325" width="68" height="20" rx="5" fill="#d1e7dd"/>
+  <rect x="358" y="325" width="52" height="20" rx="5" fill="#cfe2ff"/>
+  <rect x="358" y="350" width="68" height="20" rx="5" fill="#e2d9f3"/>
+</svg>
