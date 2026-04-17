@@ -21,20 +21,20 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <style>
   :root {
-    --bg: #f2f2f7;
-    --card: #ffffff;
-    --ink: #1c1c1e;
-    --ink2: #3a3a3c;
-    --muted: #8e8e93;
-    --sep: #c6c6c8;
-    --accent: #c4704a;
-    --blue: #007aff;
-    --red: #ff3b30;
-    --green: #34c759;
-    --morning: #fff3cd; --morning-ink: #856404;
-    --noon:    #d1e7dd; --noon-ink:    #0f5132;
-    --evening: #cfe2ff; --evening-ink: #084298;
-    --night:   #e2d9f3; --night-ink:   #432874;
+    --bg:      #eef1f6;
+    --card:    #ffffff;
+    --ink:     #1a1f2e;
+    --ink2:    #374151;
+    --muted:   #7b8494;
+    --sep:     #d1d5db;
+    --accent:  #2563eb;   /* プロフェッショナルブルー（旧オレンジから変更） */
+    --blue:    #2563eb;
+    --red:     #ef4444;
+    --green:   #16a34a;
+    --morning: #fef3c7; --morning-ink: #92400e;  /* アンバー */
+    --noon:    #d1fae5; --noon-ink:    #065f46;  /* エメラルド */
+    --evening: #dbeafe; --evening-ink: #1e3a8a;  /* ロイヤルブルー */
+    --night:   #ede9fe; --night-ink:   #4c1d95;  /* バイオレット */
     --safe-t: env(safe-area-inset-top,0px);
     --safe-b: env(safe-area-inset-bottom,0px);
     --safe-l: env(safe-area-inset-left,0px);
@@ -76,8 +76,8 @@
   #undo-btn:active:not(:disabled) { opacity: 0.6; }
 
   /* ══ カード ══ */
-  .day-card { background: var(--card); border-radius: 14px; margin-bottom: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-  .day-header { background: var(--ink2); color: #fff; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.1em; padding: 11px 16px; }
+  .day-card { background: var(--card); border-radius: 14px; margin-bottom: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.09); }
+  .day-header { background: var(--accent); color: #fff; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.1em; padding: 11px 16px; }
   .slot-section { border-top: 1px solid var(--bg); }
   .day-header + .slot-section { border-top: none; }
   .slot-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px 6px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; }
@@ -134,7 +134,7 @@
   .bottom-bar {
     position: fixed; bottom: 0; left: 0; right: 0;
     padding: 8px 12px calc(8px + var(--safe-b)) 12px;
-    background: rgba(242,242,247,0.94);
+    background: rgba(238,241,246,0.95);
     -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
     border-top: 1px solid var(--sep);
     display: flex; flex-direction: column; gap: 6px; z-index: 100;
@@ -148,8 +148,8 @@
   }
   .bar-btn:active { opacity: 0.65; }
   .bar-btn-ghost  { background: var(--card); color: var(--ink2); border: 1px solid var(--sep); }
-  .bar-btn-red    { background: #fff0ef; color: var(--red); border: 1px solid #ffcccb; }
-  .bar-btn-blue   { background: #e8f2ff; color: var(--blue); border: 1px solid #a8ceff; }
+  .bar-btn-red    { background: #fef2f2; color: var(--red); border: 1px solid #fca5a5; }
+  .bar-btn-blue   { background: #eff6ff; color: var(--blue); border: 1px solid #93c5fd; }
   .bar-btn-accent { background: var(--accent); color: #fff; }
   .bar-btn-wide   { flex: 2; }
 
@@ -291,11 +291,8 @@
   .modal-btn { flex: 1; height: 48px; font-family: inherit; font-size: 0.88rem; font-weight: 700; border-radius: 12px; border: none; cursor: pointer; }
   .modal-btn:active { opacity: 0.7; }
   .modal-btn-cancel { background: var(--bg); color: var(--ink2); }
-  .modal-btn-print  { background: #edfaf1; color: #1a7a3a; border: 1px solid #9adcb4; }
-  .modal-btn-txt    { background: #e8f2ff; color: var(--blue); }
+  .modal-btn-print  { background: #eff6ff; color: var(--blue); border: 1px solid #93c5fd; }
   .modal-btn-pdf    { background: var(--accent); color: white; }
-  /* 印刷ボタンはすべてのデバイスで表示（window.print() 直接呼び出しのため） */
-  /* @media (hover: none) and (pointer: coarse) { .pc-only { display: none !important; } } */
 
   /* ══ プルダウン管理ページ ══ */
   .opts-slot-card { background: var(--card); border-radius: 14px; margin-bottom: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -309,7 +306,7 @@
   .opts-item-label { flex: 1; color: var(--ink); }
   .opts-item-label.base { color: var(--muted); font-size: 0.8rem; }
   .opts-item-badge { font-size: 0.68rem; padding: 2px 7px; border-radius: 8px; margin-right: 8px; background: var(--bg); color: var(--muted); }
-  .opts-item-del { height: 34px; padding: 0 12px; font-size: 0.78rem; font-weight: 600; font-family: inherit; border: none; border-radius: 8px; background: #fff0ef; color: var(--red); cursor: pointer; white-space: nowrap; }
+  .opts-item-del { height: 34px; padding: 0 12px; font-size: 0.78rem; font-weight: 600; font-family: inherit; border: none; border-radius: 8px; background: #fef2f2; color: var(--red); cursor: pointer; white-space: nowrap; }
   .opts-item-del:active { opacity: 0.65; }
   .opts-note { font-size: 0.75rem; color: var(--muted); padding: 10px 14px; text-align: center; }
 
@@ -345,8 +342,8 @@
     border-radius: 8px; border: none; cursor: pointer;
   }
   .hist-act-btn:active { opacity: 0.65; }
-  .hist-act-restore { background: #e8f2ff; color: var(--blue); }
-  .hist-act-delete  { background: #fff0ef; color: var(--red); }
+  .hist-act-restore { background: #eff6ff; color: var(--blue); }
+  .hist-act-delete  { background: #fef2f2; color: var(--red); }
 
   .hist-card-body { padding: 10px 14px 12px; }
   .hist-card-sub { font-size: 0.7rem; color: var(--muted); width: 100%; padding-top: 2px; }
@@ -625,7 +622,6 @@
     <div class="modal-footer" id="preview-footer">
       <button class="modal-btn modal-btn-cancel" onclick="closePreview()">閉じる</button>
       <button class="modal-btn modal-btn-print pc-only" id="btn-print" onclick="printSchedule()">🖨️ 印刷する</button>
-      <button class="modal-btn modal-btn-txt"    onclick="exportTxt()">📄 テキスト</button>
       <button class="modal-btn modal-btn-pdf"    onclick="savePdfDirect()">📥 PDF保存</button>
     </div>
   </div>
@@ -1324,192 +1320,289 @@ function openPreview() {
 
 function closePreview() { document.getElementById('preview-modal').classList.remove('open'); }
 
-/* ══ 印刷用HTML生成 ══
-   @page で A4横を指定し、body を 281mm×194mm に固定して1ページに収める。
-   flex は body のみに設定（html への二重flex適用はレイアウト崩壊の原因）。
-   外部ライブラリ不要・純粋な CSS/HTML のみ。
-══════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   印刷用 HTML 生成
+   ─ 縦軸 = 曜日（月〜日 / 7行）  /  横軸 = 朝・昼・夕・夜（4列）
+   ─ A4 横 @page: 297×210mm、余白 8mm → 印刷可能域: 281×194mm
+
+   ■ 寸法の精密設計（border-collapse 考慮）
+     印刷可能域高さ                : 194.00mm
+     #hd（情報ヘッダー高さ）       :   7.00mm
+     #hd border-bottom             :   0.50mm
+     #hd margin-bottom             :   2.00mm
+     ───────────────────────────────
+     テーブルに使える高さ          : 184.50mm
+     border-collapse 垂直ボーダー合計 :
+       上外枠(0.3) + thead下(0.3) + 行間6本(0.3×6) + 下外枠(0.3) = 0.3×9 = 2.70mm
+       ※ border-collapse では隣接ボーダーは共有されるが、
+         上外枠・thead底・行間6本・下外枠の独立した境界線は9本
+     ───────────────────────────────
+     thead + tbody 正味高さ        : 181.80mm
+     thead 行高さ                  :   7.00mm
+     tbody 7行に使える高さ         : 174.80mm
+     1行の高さ = 174.80 / 7        :  24.971mm → 24.96mm（切り捨て安全値）
+
+   ■ 行高さ固定の仕組み
+     tbody tr { height: ROW_H }     … 各行高さを固定
+     td { padding: 0 }              … td はコンテナのみ
+     .ci { height: ROW_H;           … display:block ラッパーで
+           overflow: hidden }          overflow:hidden を確実に機能させる
+     zoom 安全装置で万一のはみ出しを吸収
+════════════════════════════════════════════════════════════════════════ */
 function buildPrintHtml() {
   const u = getUserInfo();
 
-  // ── 利用者情報 ──
+  /* ── 利用者情報ヘッダー HTML ── */
   let infoHtml = '';
-  [['利用者', u.name ? u.name + ' 様' : ''], ['担当者', u.staff], ['期間', u.period]]
-    .forEach(function([label, val]) {
-      if (!val) return;
-      infoHtml += '<span class="fi"><span class="fl">' + escHtml(label) + '：</span>' + escHtml(val) + '</span>';
-    });
+  [
+    ['利用者', u.name ? u.name + '\u00a0様' : ''],
+    ['担当者', u.staff],
+    ['期間',   u.period],
+  ].forEach(function(pair) {
+    if (!pair[1]) return;
+    infoHtml +=
+      '<span class="fi">'
+        + '<span class="fl">' + escHtml(pair[0]) + '：</span>'
+        + escHtml(pair[1])
+      + '</span>';
+  });
 
-  // ── テーブル行 ──
-  // 曜日セルは「月\n曜日」形式で2行表示（@media print 経路と統一）
+  /* ── テーブル行 HTML（縦=曜日 / 横=朝昼夕夜）── */
   const rowsHtml = DAYS.map(function(day) {
-    const dayLabel = escHtml(day.replace('曜日', '')) + '\n曜日';
-    let cells = '<td class="dc">' + dayLabel + '</td>';
+    const d = escHtml(day.replace('曜日', ''));
+    /* 曜日セル: vertical-align:middle で中央揃え（.ci 不要） */
+    let cells = '<td class="dc"><span class="dc-main">' + d + '</span>'
+              + '<span class="dc-sub">曜日</span></td>';
     SLOTS.forEach(function(slot) {
       const tags = getTags(day, slot);
+      /* display:block な .ci ラッパーで overflow:hidden を確実に機能させる */
       cells += tags.length
-        ? '<td><div class="tw">' + tags.map(function(t) {
-            return '<span class="tc ' + slot + '">' + escHtml(t) + '</span>';
-          }).join('') + '</div></td>'
-        : '<td><span class="te">─</span></td>';
+        ? '<td><div class="ci"><div class="tw">'
+            + tags.map(function(t) {
+                return '<span class="tc ' + slot + '">' + escHtml(t) + '</span>';
+              }).join('')
+            + '</div></div></td>'
+        : '<td><div class="ci"><span class="te">─</span></div></td>';
     });
     return '<tr>' + cells + '</tr>';
   }).join('');
 
-  // ── 寸法計算 ──
-  // A4横 297×210mm、余白8mm → 印刷可能域 281×194mm
-  // ヘッダー: 9mm + margin 2mm = 11mm
-  // thead: 5.5mm / border合計: ~2mm
-  // tbody: (194 - 11 - 5.5 - 2) / 7 ≈ 25.1mm → 24.5mm（余裕確保）
-  const ROW_H = '24.5mm';
+  const INFO_H = '7mm';
+  const HEAD_H = '7mm';
+  const ROW_H  = '24.96mm'; /* 174.80mm ÷ 7 = 24.971mm → 切り捨て安全値 */
+
+  const css = [
+    '@page{size:A4 landscape;margin:8mm}',
+    '*{box-sizing:border-box;margin:0;padding:0;',
+    ' -webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    'html,body{background:#fff}',
+    'body{width:281mm;margin:0;padding:0;',
+    ' font-family:"Noto Sans JP",-apple-system,sans-serif;',
+    ' color:#1a1f2e;zoom:1}',
+
+    /* 利用者情報ヘッダー: 高さ固定 7mm */
+    '#hd{display:flex;align-items:center;flex-wrap:nowrap;',
+    ' height:' + INFO_H + ';overflow:hidden;gap:5mm;',
+    ' border-bottom:.5mm solid #1a1f2e;margin-bottom:2mm;',
+    ' font-size:7.5pt;white-space:nowrap}',
+    '.ht{font-size:10pt;font-weight:700;letter-spacing:.05em;',
+    ' flex-shrink:0;margin-right:4mm}',
+    '.fi{color:#374151;flex-shrink:0;margin-right:3mm}',
+    '.fl{font-weight:700;margin-right:.3mm}',
+
+    /* テーブル: border-collapse 時は table 自体に border を指定しない */
+    'table{width:281mm;border-collapse:collapse;table-layout:fixed}',
+    'col.cd{width:12mm}',
+    'col.cs{width:67.25mm}',
+
+    /* ヘッダー行: 高さ固定 HEAD_H */
+    'thead tr{height:' + HEAD_H + '}',
+    'th{border:.3mm solid #4b5563;font-weight:700;font-size:8pt;',
+    ' text-align:center;padding:0 1mm;white-space:nowrap;',
+    ' overflow:hidden;vertical-align:middle}',
+    'th:first-child{background:#1e3a5f;color:#fff}',
+    'th.hm{background:#92400e;color:#fff}',
+    'th.hn{background:#065f46;color:#fff}',
+    'th.he{background:#1e3a8a;color:#fff}',
+    'th.hni{background:#4c1d95;color:#fff}',
+
+    /* データ行: 高さを ROW_H に完全固定 */
+    'tbody tr{height:' + ROW_H + '}',
+    /* td は padding:0 のコンテナのみ。overflow:hidden は .ci で管理 */
+    'td{border:.3mm solid #d1d5db;height:' + ROW_H + ';padding:0;vertical-align:top}',
+
+    /* .ci: display:block により overflow:hidden が全ブラウザで確実に機能 */
+    '.ci{display:block;height:' + ROW_H + ';overflow:hidden;',
+    ' padding:1.2mm 1.5mm;font-size:7pt;line-height:1.5}',
+
+    /* 曜日セル */
+    'td.dc{background:#f1f5f9;text-align:center;',
+    ' vertical-align:middle;padding:0;border-color:#4b5563}',
+    '.dc-main{display:block;font-weight:700;font-size:10pt;',
+    ' line-height:1.2;color:#1e3a5f}',
+    '.dc-sub{display:block;font-size:6pt;font-weight:400;',
+    ' color:#6b7280;margin-top:.5mm}',
+
+    /* タグチップ */
+    '.tw{display:flex;flex-wrap:wrap;gap:.8mm;align-content:flex-start}',
+    '.tc{display:inline-block;font-size:6.5pt;font-weight:500;',
+    ' padding:.4mm 2mm;border-radius:3px;white-space:nowrap;line-height:1.5}',
+    '.tc.morning{background:#fef3c7;color:#92400e}',
+    '.tc.noon   {background:#d1fae5;color:#065f46}',
+    '.tc.evening{background:#dbeafe;color:#1e3a8a}',
+    '.tc.night  {background:#ede9fe;color:#4c1d95}',
+    '.te{color:#d1d5db;font-size:7pt}',
+
+    '@media print{',
+    ' table{page-break-inside:avoid;break-inside:avoid}',
+    ' tbody tr{page-break-inside:avoid;break-inside:avoid}',
+    '}',
+  ].join('');
 
   return [
     '<!DOCTYPE html><html lang="ja">',
     '<head>',
     '<meta charset="UTF-8">',
-    '<meta name="viewport" content="width=device-width">',
     '<link rel="preconnect" href="https://fonts.googleapis.com">',
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
-    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">',
-    '<style>',
-    /* ページ設定 */
-    '@page{size:A4 landscape;margin:8mm}',
-    '*{box-sizing:border-box;margin:0;padding:0;',
-    ' -webkit-print-color-adjust:exact;print-color-adjust:exact}',
-    /* html はサイズ指定のみ。flex は body に集約 */
-    'html{width:281mm;height:194mm;overflow:hidden}',
-    'body{',
-    ' width:281mm;height:194mm;overflow:hidden;',
-    ' font-family:"Noto Sans JP",-apple-system,sans-serif;',
-    ' color:#1c1c1e;background:#fff;',
-    ' display:flex;flex-direction:column;',
-    '}',
-    /* ヘッダー: 9mm固定 + margin-bottom 2mm */
-    '#hd{',
-    ' flex-shrink:0;height:9mm;',
-    ' display:flex;align-items:center;gap:5mm;',
-    ' border-bottom:.5mm solid #3a3a3c;margin-bottom:2mm;',
-    ' font-size:7.5pt;overflow:hidden;',
-    '}',
-    '.ht{font-size:10pt;font-weight:700;letter-spacing:.06em;',
-    '    white-space:nowrap;margin-right:2mm}',
-    '.fl{font-weight:700;margin-right:.5mm}',
-    '.fi{color:#3a3a3c;white-space:nowrap}',
-    /* テーブル: flex:1 で残高さを充填 */
-    'table{',
-    ' flex:1;min-height:0;',
-    ' width:100%;border-collapse:collapse;table-layout:fixed;',
-    '}',
-    'col.cd{width:10%}col.cs{width:22.5%}',
-    /* thead */
-    'thead tr{height:5.5mm}',
-    'th{border:.3mm solid #aaa;font-weight:700;font-size:8pt;',
-    '  text-align:center;padding:1mm;white-space:nowrap;',
-    '  background:#f2f2f7;vertical-align:middle;overflow:hidden}',
-    'thead th:first-child{background:#3a3a3c;color:#fff}',
-    '.hm{color:#856404}.hn{color:#0f5132}',
-    '.he{color:#084298}.hni{color:#432874}',
-    /* tbody */
-    'tbody tr{height:' + ROW_H + '}',
-    'td{border:.3mm solid #aaa;padding:1mm 1.5mm;',
-    '  vertical-align:top;overflow:hidden;',
-    '  font-size:7pt;line-height:1.35;}',
-    'td.dc{font-weight:700;font-size:8pt;',
-    '      text-align:center;vertical-align:middle;',
-    '      background:#f2f2f7;white-space:pre}',
-    /* タグ */
-    '.tw{display:flex;flex-wrap:wrap;gap:.5mm;',
-    '    align-content:flex-start;',
-    '    max-height:23mm;overflow:hidden}',
-    '.tc{display:inline-block;font-size:6.5pt;font-weight:500;',
-    '    padding:.3mm 1.5mm;border-radius:2px;',
-    '    white-space:nowrap;line-height:1.4}',
-    '.tc.morning{background:#fff3cd;color:#856404}',
-    '.tc.noon   {background:#d1e7dd;color:#0f5132}',
-    '.tc.evening{background:#cfe2ff;color:#084298}',
-    '.tc.night  {background:#e2d9f3;color:#432874}',
-    '.te{color:#aaa;font-size:7pt}',
-    /* 印刷時：ページ分割を禁止 */
-    '@media print{',
-    ' table{page-break-inside:avoid;break-inside:avoid}',
-    ' tbody tr{page-break-inside:avoid;break-inside:avoid}',
-    '}',
-    '</style>',
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap"',
+    '  rel="stylesheet">',
+    '<style>', css, '</style>',
     '</head>',
     '<body>',
-    '<div id="hd">',
-    '  <span class="ht">週間スケジュール表</span>',
-    infoHtml,
-    '</div>',
-    '<table>',
-    '<colgroup>',
-    '  <col class="cd">',
-    '  <col class="cs"><col class="cs"><col class="cs"><col class="cs">',
-    '</colgroup>',
-    '<thead><tr>',
-    '  <th>曜日</th>',
-    '  <th class="hm">🌅 朝</th>',
-    '  <th class="hn">☀️ 昼</th>',
-    '  <th class="he">🌇 夕</th>',
-    '  <th class="hni">🌙 夜</th>',
-    '</tr></thead>',
-    '<tbody>', rowsHtml, '</tbody>',
-    '</table>',
+      '<div id="hd">',
+        '<span class="ht">週間スケジュール表</span>',
+        infoHtml,
+      '</div>',
+      '<table>',
+        '<colgroup>',
+          '<col class="cd">',
+          '<col class="cs"><col class="cs"><col class="cs"><col class="cs">',
+        '</colgroup>',
+        '<thead>',
+          '<tr>',
+            '<th>曜日</th>',
+            '<th class="hm">🌅&nbsp;朝</th>',
+            '<th class="hn">☀️&nbsp;昼</th>',
+            '<th class="he">🌇&nbsp;夕</th>',
+            '<th class="hni">🌙&nbsp;夜</th>',
+          '</tr>',
+        '</thead>',
+        '<tbody>', rowsHtml, '</tbody>',
+      '</table>',
     '</body></html>',
   ].join('');
 }
 
-/* ══ 印刷する（PC）
-   window.print() を直接呼び出す。
-   @media print CSS が #print-view を表示し、他要素をすべて非表示にする。
-   iframe・ポップアップ・外部ライブラリ不要で最も確実な方法。
-══════════════════════════════════════════════════════════════════════════ */
-function printSchedule() {
-  closePreview();
-  updatePrintInfo();   // #print-info DOM を最新化
-  window.print();
+/* ══════════════════════════════════════════════════════════════════════
+   印刷 zoom 安全装置
+   ─ 行高さを固定したので通常は zoom 不要（既に1ページに収まる）
+   ─ ブラウザの DPI 差異などで万一はみ出した場合のみ zoom で縮小する
+   ─ transform:scale は印刷エンジンに無視されるため絶対に使わない
+════════════════════════════════════════════════════════════════════════ */
+function _applyPrintZoom(idoc) {
+  const body = idoc.body;
+  if (!body) return;
+
+  /* iframe 内で mm→px 変換係数を実測（DPI 非依存） */
+  const probe = idoc.createElement('div');
+  probe.style.cssText =
+    'position:absolute;top:-9999px;left:0;' +
+    'width:100mm;height:1mm;visibility:hidden;zoom:1';
+  body.appendChild(probe);
+  const pxPer100mm = probe.offsetWidth;
+  body.removeChild(probe);
+
+  const MM = pxPer100mm > 0 ? pxPer100mm / 100 : 96 / 25.4;
+  const PAGE_W = 281 * MM;
+  const PAGE_H = 194 * MM;
+
+  /* zoom:1 で自然サイズを計測 */
+  body.style.zoom = '1';
+  const natW = body.scrollWidth;
+  const natH = body.scrollHeight;
+
+  /* 収まっていない場合のみ zoom を適用（拡大しない） */
+  const zoom = Math.min(PAGE_W / natW, PAGE_H / natH, 1.0);
+  if (zoom < 0.999) {
+    body.style.zoom = zoom.toFixed(6);
+  }
 }
 
-/* ══ PDF保存
-   buildPrintHtml() で生成した印刷用HTMLを Blob URL として新タブで開く。
-   新タブでフォント読み込み完了後に自動的に印刷ダイアログを表示。
-   印刷ダイアログの「送信先」→「PDFとして保存」でPDF化できる。
-   html2canvas/jsPDF 不要・純粋なブラウザAPIのみ。
-══════════════════════════════════════════════════════════════════════════ */
-function savePdfDirect() {
+/* ══════════════════════════════════════════════════════════════════════
+   隠し iframe による直接印刷
+   ─ 新タブ・ダウンロード不要
+   ─ iframe を A4横の物理サイズ (297×210mm) で生成
+     → iframe 内の CSS mm 単位が正確に計算される
+   ─ フォント確実読み込み → zoom 自動計算 → print() の順で実行
+════════════════════════════════════════════════════════════════════════ */
+function _printViaIframe(mode) {
   closePreview();
 
-  const u = getUserInfo();
-  // 印刷用HTMLにフォント待機＋自動print スクリプトを埋め込む
-  const html = buildPrintHtml().replace('</body></html>',
-    '<script>' +
-    'document.fonts.ready.then(function(){' +
-    '  window.focus();' +
-    '  window.print();' +
-    '});<\/script>' +
-    '</body></html>'
-  );
+  /* 既存の印刷 iframe を除去 */
+  const old = document.getElementById('_print_iframe');
+  if (old) old.parentNode.removeChild(old);
 
-  // Blob URL 経由で新タブを開く（ユーザー操作起点のため通常ブロックされない）
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const win  = window.open(url, '_blank');
+  /* A4横の物理サイズで iframe を生成（画面外に配置して視覚的に非表示） */
+  const iframe = document.createElement('iframe');
+  iframe.id = '_print_iframe';
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText =
+    'position:fixed;top:0;left:-9999px;' +
+    'width:297mm;height:210mm;' +   /* A4横 物理サイズ必須 */
+    'border:none;visibility:hidden;pointer-events:none;z-index:-1000';
+  document.body.appendChild(iframe);
 
-  if (!win) {
-    // ポップアップが blocked された場合は HTML ファイルとしてダウンロード
-    let fname = '週間スケジュール表';
-    if (u.name)   fname = u.name + '_' + fname;
-    if (u.period) fname = fname + '_' + u.period;
-    const a = document.createElement('a');
-    a.href = url; a.download = fname + '.html';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    showToast('HTMLファイルを開いて印刷→PDFとして保存 してください');
-  } else {
+  const idoc = iframe.contentDocument;
+  idoc.open();
+  idoc.write(buildPrintHtml());
+  idoc.close();
+
+  /*
+   * フォント待機: fonts.ready だけでは webfont の描画完了が保証されないため
+   * 使用ウェイトを明示的にロードして Promise.all で待機する。
+   */
+  const fontLoads = [
+    idoc.fonts.ready,
+    idoc.fonts.load('400 10px "Noto Sans JP"').catch(function() {}),
+    idoc.fonts.load('700 10px "Noto Sans JP"').catch(function() {}),
+  ];
+
+  Promise.all(fontLoads).then(function() {
+    /* zoom でスケーリング適用（レイアウト確定後） */
+    _applyPrintZoom(idoc);
+
+    /*
+     * 150ms 待機: zoom 適用後の再レイアウトが印刷エンジンに
+     * 確実に反映されるのを待つ。
+     */
+    setTimeout(function() {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+
+      /* 60秒後に iframe を自動除去 */
+      setTimeout(function() {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 60000);
+    }, 150);
+
+  }).catch(function(err) {
+    console.warn('print: font load failed, proceeding anyway', err);
+    _applyPrintZoom(idoc);
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+  });
+
+  if (mode === 'pdf') {
     showToast('📄 印刷ダイアログ →「PDFとして保存」を選択してください');
   }
-  // Blob URL を2分後に解放
-  setTimeout(function() { URL.revokeObjectURL(url); }, 120000);
 }
+
+/* ══ 印刷する ══ */
+function printSchedule() { _printViaIframe('print'); }
+
+/* ══ PDF保存 ══ */
+function savePdfDirect()  { _printViaIframe('pdf'); }
 
 function escHtml(str) {
   return String(str)
