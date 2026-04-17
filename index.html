@@ -621,7 +621,7 @@
     <div class="modal-body" id="preview-body"></div>
     <div class="modal-footer" id="preview-footer">
       <button class="modal-btn modal-btn-cancel" onclick="closePreview()">閉じる</button>
-      <button class="modal-btn modal-btn-print pc-only" id="btn-print" onclick="printSchedule()">🖨️ 印刷する</button>
+      <button class="modal-btn modal-btn-print" id="btn-print" onclick="printSchedule()">🖨️ 印刷する</button>
       <button class="modal-btn modal-btn-pdf"    onclick="savePdfDirect()">📥 PDF保存</button>
     </div>
   </div>
@@ -1530,26 +1530,81 @@ function _applyPrintZoom(idoc) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   隠し iframe による直接印刷
-   ─ 新タブ・ダウンロード不要
-   ─ iframe を A4横の物理サイズ (297×210mm) で生成
-     → iframe 内の CSS mm 単位が正確に計算される
-   ─ フォント確実読み込み → zoom 自動計算 → print() の順で実行
+   モバイル / デスクトップ判定
+   ─ iOS Safari / Android Chrome は iframe.contentWindow.print() を
+     仕様上サポートしていない → モバイルは別経路で印刷する
 ════════════════════════════════════════════════════════════════════════ */
-function _printViaIframe(mode) {
-  closePreview();
+function _isMobile() {
+  /* UA 判定 + タッチデバイス判定（iPad の "Macintosh" UA を除外） */
+  if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return true;
+  if (navigator.maxTouchPoints > 1 && !/Macintosh/.test(navigator.userAgent)) return true;
+  return false;
+}
 
+/* ══════════════════════════════════════════════════════════════════════
+   印刷エントリポイント: モバイル / デスクトップを自動判定して分岐
+════════════════════════════════════════════════════════════════════════ */
+function _doPrint(mode) {
+  closePreview();
+  if (_isMobile()) {
+    _printMobile(mode);
+  } else {
+    _printDesktop(mode);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   モバイル印刷
+   ─ iframe.contentWindow.print() は iOS Safari / Android Chrome で
+     動作しないため、Blob URL を新タブで開いて window.print() を呼ぶ。
+   ─ ユーザー操作（タップ）起点のため window.open() はブロックされない。
+   ─ 新タブ内の HTML に fonts.ready → window.print() スクリプトを埋め込む。
+════════════════════════════════════════════════════════════════════════ */
+function _printMobile(mode) {
+  /* fonts.ready + 自動 print スクリプトを末尾に注入 */
+  const html = buildPrintHtml().replace('</body></html>',
+    '<script>' +
+    'document.fonts.ready.then(function(){window.print();});' +
+    '<\/script></body></html>'
+  );
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+
+  if (!win) {
+    /* ポップアップがブロックされた場合は案内を表示 */
+    showToast('ポップアップを許可してから再度タップしてください');
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  if (mode === 'pdf') {
+    showToast('📄 印刷 →「PDFとして保存」を選択してください');
+  }
+
+  /* 2分後に Blob URL を解放 */
+  setTimeout(function() { URL.revokeObjectURL(url); }, 120000);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   デスクトップ印刷
+   ─ 隠し iframe に Blob を書き込み iframe.contentWindow.print() を呼ぶ。
+   ─ 新タブ不要・ページ遷移なし。
+   ─ iframe は A4横の物理サイズ (297×210mm) で生成することで
+     CSS mm 単位が正確に計算される。
+════════════════════════════════════════════════════════════════════════ */
+function _printDesktop(mode) {
   /* 既存の印刷 iframe を除去 */
   const old = document.getElementById('_print_iframe');
   if (old) old.parentNode.removeChild(old);
 
-  /* A4横の物理サイズで iframe を生成（画面外に配置して視覚的に非表示） */
   const iframe = document.createElement('iframe');
   iframe.id = '_print_iframe';
   iframe.setAttribute('aria-hidden', 'true');
   iframe.style.cssText =
     'position:fixed;top:0;left:-9999px;' +
-    'width:297mm;height:210mm;' +   /* A4横 物理サイズ必須 */
+    'width:297mm;height:210mm;' +
     'border:none;visibility:hidden;pointer-events:none;z-index:-1000';
   document.body.appendChild(iframe);
 
@@ -1558,10 +1613,6 @@ function _printViaIframe(mode) {
   idoc.write(buildPrintHtml());
   idoc.close();
 
-  /*
-   * フォント待機: fonts.ready だけでは webfont の描画完了が保証されないため
-   * 使用ウェイトを明示的にロードして Promise.all で待機する。
-   */
   const fontLoads = [
     idoc.fonts.ready,
     idoc.fonts.load('400 10px "Noto Sans JP"').catch(function() {}),
@@ -1569,23 +1620,14 @@ function _printViaIframe(mode) {
   ];
 
   Promise.all(fontLoads).then(function() {
-    /* zoom でスケーリング適用（レイアウト確定後） */
     _applyPrintZoom(idoc);
-
-    /*
-     * 150ms 待機: zoom 適用後の再レイアウトが印刷エンジンに
-     * 確実に反映されるのを待つ。
-     */
     setTimeout(function() {
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
-
-      /* 60秒後に iframe を自動除去 */
       setTimeout(function() {
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
       }, 60000);
     }, 150);
-
   }).catch(function(err) {
     console.warn('print: font load failed, proceeding anyway', err);
     _applyPrintZoom(idoc);
@@ -1599,10 +1641,10 @@ function _printViaIframe(mode) {
 }
 
 /* ══ 印刷する ══ */
-function printSchedule() { _printViaIframe('print'); }
+function printSchedule() { _doPrint('print'); }
 
 /* ══ PDF保存 ══ */
-function savePdfDirect()  { _printViaIframe('pdf'); }
+function savePdfDirect()  { _doPrint('pdf'); }
 
 function escHtml(str) {
   return String(str)
