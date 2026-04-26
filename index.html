@@ -1369,11 +1369,32 @@ function _isMobile() {
 /* ══════════════════════════════════════════════════════════════════════
    印刷エントリポイント: モバイル / デスクトップを自動判定して分岐
 ════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   印刷エントリポイント
+   ─ モバイル: @page landscape が AirPrint/Android で無視されるため
+     印刷ダイアログ前に「横向き設定」を案内するトーストを表示する。
+   ─ Firefox: @page landscape を反映しないことがあるため同様に案内。
+   ─ Chrome/Edge/Safari(PC): @page landscape が確実に反映されるため案内不要。
+════════════════════════════════════════════════════════════════════════ */
 function _doPrint(mode) {
   closePreview();
-  if (_isMobile()) {
-    _printMobile(mode);
+
+  const mob     = _isMobile();
+  const firefox = /Firefox/i.test(navigator.userAgent);
+
+  if (mob) {
+    /*
+     * モバイル: トースト表示 → 500ms 後に印刷起動。
+     * ユーザーがトーストを読んでから印刷ダイアログが開く。
+     */
+    showToast('📄 印刷ダイアログで用紙の向きを「横向き」に設定してください');
+    setTimeout(function() { _printMobile(mode); }, 500);
+  } else if (firefox) {
+    /* Firefox: 同様にトーストで案内してから印刷 */
+    showToast('🖨️ 印刷ダイアログで用紙の向きを「横」に設定してください');
+    setTimeout(function() { _printDesktop(mode); }, 500);
   } else {
+    /* Chrome / Edge / Safari(PC): @page landscape が自動反映されるため即時印刷 */
     _printDesktop(mode);
   }
 }
